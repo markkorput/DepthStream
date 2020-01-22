@@ -23,7 +23,7 @@
 * Modifications copyright (C) 2018 Fuse srl                                  *
 *****************************************************************************/
 
-#include "OniSampleUtilities.h"
+#include "DepthStream/OniSampleUtilities.h"
 
 namespace depth {
 

@@ -30,7 +30,7 @@
 #include <iostream>
 #include <sstream> // std::stringstream
 #include <chrono>
-#include "Inflater.h"
+#include "DepthStream/Inflater.h"
 
 #define DEFAULT_BUF_SIZE (1280*720*4)
 

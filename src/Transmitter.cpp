@@ -34,8 +34,8 @@
 #include <functional>
 #include <math.h>
 
-#include "OniSampleUtilities.h"
-#include "Transmitter.h"
+#include "DepthStream/OniSampleUtilities.h"
+#include "DepthStream/Transmitter.h"
 
 using namespace depth;
 

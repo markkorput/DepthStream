@@ -36,8 +36,8 @@
 #include <math.h>
 #include "zlib.h"
 
-#include "OniSampleUtilities.h"
-#include "Receiver.h"
+#include "DepthStream/OniSampleUtilities.h"
+#include "DepthStream/Receiver.h"
 
 using namespace depth;
 

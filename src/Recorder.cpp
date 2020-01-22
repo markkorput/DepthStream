@@ -20,7 +20,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
-#include "Recorder.h"
+#include "DepthStream/Recorder.h"
 
 using namespace std;
 using namespace depth;

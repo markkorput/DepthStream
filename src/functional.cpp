@@ -20,7 +20,7 @@
  */
 
 
-#include "functional.h"
+#include "DepthStream/functional.h"
 
 using namespace depth;
 

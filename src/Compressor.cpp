@@ -17,7 +17,7 @@
 
 #include <iostream>
 #include "zlib.h"
-#include "Compressor.h"
+#include "DepthStream/Compressor.h"
 
 
 using namespace depth;

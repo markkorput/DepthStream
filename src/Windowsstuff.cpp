@@ -18,7 +18,7 @@
 #ifdef _WIN32
 #include <winsock2.h>
 #include <stdio.h>
-#include "Windowsstuff.h"
+#include "DepthStream/Windowsstuff.h"
 
 bool bWinSocksAreInitialized=false;
 

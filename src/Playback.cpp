@@ -20,7 +20,7 @@
 #include <fstream>
 #include <thread>
 #include <chrono>
-#include "Playback.h"
+#include "DepthStream/Playback.h"
 
 using namespace depth;
 

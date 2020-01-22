@@ -1,6 +1,6 @@
 # this file is inspired by https://github.com/pabloariasal/modern-cmake-sample/blob/master/libjsonutils/CMakeLists.txt
 cmake_minimum_required(VERSION 3.10)
-project(DepthStream VERSION 0.1.0)
+project(DepthStream VERSION 0.1.1)
 
 ##############################################
 # Declare dependencies

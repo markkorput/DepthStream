@@ -28,12 +28,12 @@ namespace depth {
    */
   class Compressor {
     public:
+
       bool compress(const void* data, size_t size);
       const void* getData() { return compressed; }
       int getSize(){ return sizeCompressed; }
 
-    private:
-      bool doCompression();
+      static size_t deflate(const void* data, size_t size, void* out, size_t out_size);
 
     private:
       static const int BUF_SIZE = 1280*720*4; // TODO; use dynamically allocated size

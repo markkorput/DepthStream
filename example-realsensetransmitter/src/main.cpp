@@ -4,7 +4,7 @@
 #include <librealsense2/rs.hpp> // Include RealSense Cross Platform API
 // #include "example.hpp"          // Include short list of convenience functions for rendering
 
-#include "../../src/TransmitterAgent.h"
+#include "DepthStream/TransmitterAgent.h"
 #include "key_handler.h"
 
 // Capture Example demonstrates how to
@@ -20,6 +20,7 @@ int main(int argc, char * argv[]) try
   // Declare RealSense pipeline, encapsulating the actual device and sensors
   rs2::pipeline pipe;
   // Start streaming with default recommended configuration
+  if (verbose) std::cout << "Starting realsense pipe..." << std::endl;
   pipe.start();
 
   while(shouldContinue) { // Application still alive?
@@ -32,10 +33,9 @@ int main(int argc, char * argv[]) try
     auto height = frame.get_height();
     // auto stream = frame.get_profile().stream_type();
 
-
     if (format == RS2_FORMAT_Z16) {
+      if (verbose) std::cout << "Submitting " << width <<"x" << height << " RS2_FORMAT_Z16 frame to TransmitterAgent" << std::endl;
       agent.submit(frame.get_data(), width*height*2);
-      // if (verbose) std::cout << "Submitted " << width <<"x" << height << " RS2_FORMAT_Z16 frame to TransmitterAgent" << std::endl;
       continue;
     }
 

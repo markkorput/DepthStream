@@ -127,5 +127,7 @@ namespace depth {
       }
 
       void concat(const Frame &f1, const Frame &f2);
+
+      void* buffer() { return this->ownedData; }
   };
 }

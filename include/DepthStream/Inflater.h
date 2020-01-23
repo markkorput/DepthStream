@@ -18,6 +18,7 @@
 #pragma once
 
 #include <memory>
+#include "DepthStream/Frame.h"
 
 namespace depth {
   class Inflater;
@@ -32,14 +33,6 @@ namespace depth {
       Inflater() {}
       Inflater(std::size_t initialBufferSize);
 
-      /// Deallocates the memory used to store inflated content (will not deallocate the memory that was release using the releaseData method)
-      ~Inflater(){
-        destroy();
-      }
-
-      /// Deallocates the memory used to store inflated content (will not deallocate the memory that was release using the releaseData method)
-      void destroy();
-
       /// Performs decompression on the provided data package
       bool inflate(const void* data, std::size_t size);
 
@@ -47,17 +40,14 @@ namespace depth {
       std::size_t getSize() const { return inflateSize; }
 
       /// Returns a pointer to the inflated package data (will be NULL when no inflation is performed or after releaseData is called)
-      const void* getData() const { return decompressed; }
-
-      /// "Releases" (abandons) and returns a pointer to the allocated data for decompression.
-      /// When using this method, the caller is responsible for deallocating the returned memory block
-      void* releaseData(){ void* tmp = decompressed; decompressed=NULL; return tmp; }
+      // const void* getData() const { return decompressed; }
+      const void* getData() const { return this->frameRef ? this->frameRef->data() : NULL; }
 
       void setVerbose(bool verbose) { bVerbose = verbose; }
 
     private:
-      void* decompressed=NULL;
-      std::size_t currentBufferSize=0;
+
+      WritableFrameRef frameRef=nullptr; 
       std::size_t inflateSize=0;
       bool bVerbose=false;
   };

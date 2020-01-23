@@ -107,6 +107,13 @@ namespace depth {
 
       static WritableFrameRef ref(size_t size) { return std::make_shared<WritableFrame>(size); }
 
+      static WritableFrameRef adopt(void* data, size_t size) {
+        auto ref = std::make_shared<WritableFrame>();
+        ref->_size = size;
+        ref->ownedData = data;
+        return ref;
+      }
+
       static WritableFrameRef concatRef(const Frame &f1, const Frame &f2) {
         auto r = WritableFrame::ref(f1.size() + f2.size());
         r->concat(f1, f2);
@@ -115,6 +122,7 @@ namespace depth {
 
     public:
 
+      WritableFrame() { }
       /// Allocates size bytes of _owned_ data
       WritableFrame(size_t size) : ReadOnlyFrame(size) {}
 

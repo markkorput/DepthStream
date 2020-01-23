@@ -6,8 +6,8 @@
 
 using namespace depth;
 
-TEST_CASE("depth::Compressor", ""){
-  SECTION("static deflate inflate methods"){
+TEST_CASE("depth::compression", ""){
+  SECTION("deflate and inflate"){
     // original data
     size_t size=512;
     char data[size];

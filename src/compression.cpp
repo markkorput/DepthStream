@@ -98,7 +98,7 @@ size_t depth::compression::inflate(const void* compressedData, size_t compressed
 
   if (inflateInit(&strm) != Z_OK) {
       std::cerr << "[depth::Inflater] inflator init failed" << std::endl;
-      return false;
+      return 0;
   }
 
   while (true) {
@@ -116,7 +116,7 @@ size_t depth::compression::inflate(const void* compressedData, size_t compressed
 
       if (!target) {
         std::cerr << "Could not grow buffer" << std::endl;
-        return false;
+        return 0;
       }
 
       target_size = newsize;

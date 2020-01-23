@@ -14,8 +14,8 @@ TEST_CASE("depth::compression", ""){
     for (int i=0; i<size; i++) data[i]=i;
 
     // compression buffer
-    size_t max=1024;
-    char compress_buf[max];
+    size_t max=0;
+    void* compress_buf=NULL;
 
     // compress
     size_t compress_size = compression::deflate(data, size, compress_buf, max);
@@ -59,5 +59,7 @@ TEST_CASE("depth::compression", ""){
       REQUIRE(inflatesize == size); //failure, didn't fit in buffer
       REQUIRE(pbuf == (void*)inflatebuf); // success
     }
+
+    compression::freeBuffer(compress_buf);
   }
 }

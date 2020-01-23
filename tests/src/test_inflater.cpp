@@ -7,7 +7,7 @@
 
 using namespace depth;
 
-TEST_CASE("depth::Inflate", ""){
+TEST_CASE("depth::Inflater", ""){
   SECTION("inflate"){
 
     // original data
@@ -16,8 +16,8 @@ TEST_CASE("depth::Inflate", ""){
     for (int i=0; i<size; i++) data[i]=i;
 
     // compression buffer
-    size_t max=1024;
-    char compress_buf[max];
+    size_t max=0;
+    void* compress_buf=NULL;
 
     // compress
     size_t compress_size = compression::deflate(data, size, compress_buf, max);
@@ -28,5 +28,7 @@ TEST_CASE("depth::Inflate", ""){
     REQUIRE(inflater.inflate(compress_buf, compress_size));
     REQUIRE(inflater.getSize() == size);
     REQUIRE(memcmp(inflater.getData(), data, inflater.getSize()) == 0);
+
+    compression::freeBuffer(compress_buf);
   }
 }

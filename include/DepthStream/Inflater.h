@@ -37,18 +37,18 @@ namespace depth {
       bool inflate(const void* data, std::size_t size);
 
       /// Returns the inflated size of the last inflate operation
-      std::size_t getSize() const { return inflateSize; }
+      std::size_t getSize() const { return data_size; }
 
       /// Returns a pointer to the inflated package data (will be NULL when no inflation is performed or after releaseData is called)
       // const void* getData() const { return decompressed; }
-      const void* getData() const { return this->frameRef ? this->frameRef->data() : NULL; }
+      const void* getData() const { return this->buffer; }
 
       void setVerbose(bool verbose) { bVerbose = verbose; }
 
     private:
-
-      WritableFrameRef frameRef=nullptr; 
-      std::size_t inflateSize=0;
+      void* buffer=NULL;
+      size_t buffer_size=0;
+      size_t data_size=0;
       bool bVerbose=false;
   };
 }

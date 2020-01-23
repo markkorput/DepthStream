@@ -27,22 +27,14 @@ using namespace std;
 using namespace depth;
 
 Inflater::Inflater(size_t initialBufferSize) {
-  this->frameRef = WritableFrame::ref(initialBufferSize);
+  this->buffer = compression::growBuffer(NULL, 0, initialBufferSize, false);
+  this->buffer_size = initialBufferSize;
 }
 
 bool Inflater::inflate(const void* data, size_t size) {
-  // get referensable attributes from out writable frame
-  void* target = this->frameRef ? this->frameRef->buffer() : NULL;
-  size_t target_size = this->frameRef ? this->frameRef->size() : 0;
-
   // perform inflation (this might re-allocate a larger target buffer when necessary)
-  this->inflateSize = compression::inflate(data, size, target, target_size, true /* grow target buffer if necessary */, compression::DEFAULT_GROW_SIZE, this->bVerbose);
+  this->data_size = compression::inflate(data, size, this->buffer, this->buffer_size, true /* grow target buffer if necessary */, compression::DEFAULT_GROW_SIZE, this->bVerbose);
 
-  // if a new target buffer was allocated, adopt it as our frame
-  if (this->frameRef == nullptr || target != this->frameRef->buffer()) {
-    this->frameRef = WritableFrame::adopt(target, target_size);
-  }
-
-  return this->inflateSize != 0;
+  return this->data_size != 0;
 }
 

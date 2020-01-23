@@ -22,18 +22,19 @@
 
 using namespace depth;
 
-bool Compressor::compress(const void* data, size_t size) {
-  // memcpy(buffer, data, size);
-  if(data){
-    this->size = size;
-    this->buffer = (const unsigned char*)data;
+Compressor::~Compressor() {
+  if (buffer) compression::freeBuffer(this->buffer);
+}
 
-    // std::string ss(data, size);
-    // std::cout << "compressing: " << ss << std::endl;
-    // return doCompression();
-    compression::deflate(this->buffer, this->size, this->compressed, BUF_SIZE);
+bool Compressor::compress(const void* data, size_t size) {
+  if(!data){
+    std::cout << "Got NULL pointer to compress" << std::endl;
+    return false;
   }
 
-  std::cout << "Got NULL pointer to compress" << std::endl;
-  return false;
+  // perform inflation (this might re-allocate a larger target buffer when necessary)
+  this->dataSize = compression::deflate(data, size, this->buffer, this->buffer_size);
+
+
+  return this->dataSize != 0;
 }

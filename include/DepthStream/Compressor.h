@@ -18,29 +18,45 @@
 #pragma once
 
 #include <memory>
+#include "DepthStream/Frame.h"
 
 namespace depth {
   class Compressor;
   typedef std::shared_ptr<Compressor> CompressorRef;
 
   /**
-   * \brief Compressed a package (frame) of data using zlib compression
+   * \brief The Compressor class uses the compression::deflate method and provides
+   * a re-usable buffer for the compressed data to avoid new memory allocation for every frame.
    */
   class Compressor {
     public:
 
+      ~Compressor();
+
+      /**
+       * \brief The compress method invokes the compression::inflate method using the given data,
+       * and the internal re-usable buffer to hold the compressed data.
+       */
       bool compress(const void* data, size_t size);
-      const void* getData() { return compressed; }
-      int getSize(){ return sizeCompressed; }
+
+
+      /**
+       * \brief getData returns a pointer to the internal data buffer
+       * that holds the data of the last compress action
+       * returns (NULL if there are no previous compression actions).
+       */
+      inline const void* getData() { return buffer; }
+
+      /**
+       * \brief returns the size of the data that resulted from
+       * the last compress action. Returns 0 (zero) if there hasn't been
+       * any compress actions yet, or if the last compress action failed.
+       */
+      inline int getSize(){ return dataSize; }
 
     private:
-      static const int BUF_SIZE = 1280*720*4; // TODO; use dynamically allocated size
-      // input
-      const unsigned char* buffer; //[RECEIVE_BUF_SIZE];
-      unsigned int size=0;
-      // output
-      unsigned char compressed[BUF_SIZE];
-      unsigned int sizeCompressed=0;
-      int deflateResult;
+      void* buffer = NULL;
+      size_t buffer_size = 0;
+      unsigned int dataSize = 0;
   };
 }

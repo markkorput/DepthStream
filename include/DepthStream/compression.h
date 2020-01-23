@@ -10,8 +10,18 @@ namespace depth { namespace compression {
   void freeBuffer(void* buffer);
 
   // compress
-  size_t deflate(const void* data, size_t size, void* out, size_t out_size);
+  size_t deflate(
+    const void* data, size_t size,
+    void* &out, size_t &out_size,
+    bool growTarget=true,                               // allow target buffer re-allocation
+    size_t grow_size=DEFAULT_GROW_SIZE,                 // amount by which to increase target buffer size
+    bool bVerbose=false);                               // verbosity flag
 
   // decompress
-  size_t inflate(const void* compressedData, size_t compressedSize, void* &target, size_t &target_size, bool growTarget=true, size_t grow_size=DEFAULT_GROW_SIZE, bool bVerbose=false); 
+  size_t inflate(
+    const void* compressedData, size_t compressedSize,  // source data
+    void* &target, size_t &target_size,                 // target buffer
+    bool growTarget=true,                               // allow target buffer re-allocation
+    size_t grow_size=DEFAULT_GROW_SIZE,                 // amount by which to increase target buffer size
+    bool bVerbose=false);                               // verbosity flag
 }}

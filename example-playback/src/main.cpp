@@ -29,7 +29,7 @@ int main(int argc, char * argv[])
  
   while(keepGoing) {
     playback.update([&agent](void* data, size_t size){
-      cout << size << "-byte frame" << endl;
+      if (agent.getVerbose()) cout << size << "-byte frame" << endl;
       agent.submit(data,size);
     });
   }

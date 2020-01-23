@@ -5,7 +5,7 @@
 
 #include "DepthStream/TransmitterAgent.h"
 
-using namespace DepthStream;
+using namespace depth;
 
 bool Converter16to32bit::convert(const void* data, size_t size) {
   if((size * 2) > BUF_SIZE){
@@ -110,17 +110,22 @@ bool TransmitterAgent::transmitFrame(const void* data, size_t size) {
     }
   }
 
-  if(!compressor->compress(data, size)) {
-    std::cerr << "compression failed" << std::endl;
-    return false;
+  if (bCompress) {
+    if(!compressor->compress(data, size)) {
+      std::cerr << "compression failed" << std::endl;
+      return false;
+    }
+
+    data = compressor->getData();
+    size = compressor->getSize();
   }
 
-  if (!transmitter->transmit((const char*)compressor->getData(), compressor->getSize())) {
-    if(bVerbose) std::cout << "transmit of " << compressor->getSize() << "-byte compressed depth frame FAILED (probably no connection)" << std::endl;
+  if (!transmitter->transmit((const char*)data, size)) {
+    if(bVerbose) std::cout << "transmit of " << size << "-byte compressed depth frame FAILED (probably no connection)" << std::endl;
     return false;
   } 
   
-  if(bVerbose) std::cout << "transmitted " << compressor->getSize() << "-byte compressed depth frame" << std::endl;
+  if(bVerbose) std::cout << "transmitted " << size << "-byte compressed depth frame" << std::endl;
 
   return true;
 }

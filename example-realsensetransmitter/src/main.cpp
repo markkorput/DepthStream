@@ -11,7 +11,7 @@
 // capture depth and color video streams and render them to the screen
 int main(int argc, char * argv[]) try
 {
-  DepthStream::TransmitterAgent agent(argc, argv);
+  depth::TransmitterAgent agent(argc, argv);
   bool verbose = agent.getVerbose();
 
   // Declare depth colorizer for pretty visualization of depth data

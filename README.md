@@ -15,7 +15,7 @@ _TransmitterAgent is a helper class that takes care of compression, throttling a
 
   char buffer[1024*1024*512];
   int port = 4445; // default
-  DepthStream::TransmitterAgent transmitter(port);
+  depth::TransmitterAgent transmitter(port);
 
   while(true) {
     auto frame_size = readFrameData((void**)buffer);

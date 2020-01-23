@@ -6,7 +6,7 @@
 #include "Compressor.h"
 #include "Transmitter.h"
 
-namespace DepthStream {
+namespace depth {
 
   class Converter16to32bit {
     public:
@@ -27,6 +27,7 @@ namespace DepthStream {
       TransmitterAgent(int argc, char** argv);
       bool submit(const void* data, size_t size);
       inline bool getVerbose() const { return bVerbose; }
+      inline void setDoCompress(bool v) { bCompress = v; }
 
     protected:
 
@@ -39,6 +40,7 @@ namespace DepthStream {
       bool bVerbose=false;
       std::shared_ptr<Converter16to32bit> converterRef = nullptr;
 
+      bool bCompress = true;
       depth::CompressorRef compressor=nullptr;
       depth::TransmitterRef transmitter=nullptr;
 

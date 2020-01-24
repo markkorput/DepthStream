@@ -6,6 +6,7 @@ project(DepthStream VERSION 0.1.1)
 # Declare dependencies
 
 find_package(ZLIB)
+find_package (Threads)
 
 ##############################################
 # Create target and set properties
@@ -40,6 +41,7 @@ target_link_libraries(DepthStream
     #     Boost::regex
     PRIVATE
       ${ZLIB_LIBRARIES}
+      ${CMAKE_THREAD_LIBS_INIT}
 )
 
 

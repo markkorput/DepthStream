@@ -17,8 +17,8 @@
 
 #pragma once
 
-#include <memory>
 #include <functional>
+#include <memory>
 
 namespace depth {
 
@@ -130,10 +130,7 @@ namespace depth {
         this->write(data, size, 0);
       }
 
-      void write(const void* data, size_t size, size_t offset) {
-        memcpy((void*)((char*)this->ownedData + offset), data, size);
-      }
-
+      void write(const void* data, size_t size, size_t offset);
       void concat(const Frame &f1, const Frame &f2);
 
       void* buffer() { return this->ownedData; }

@@ -1,5 +1,7 @@
+#include <stdio.h>
 #include "DepthStream/Frame.h"
 
+using namespace std;
 using namespace depth;
 
 void WritableFrame::concat(const Frame &f1, const Frame &f2) {
@@ -17,4 +19,8 @@ void WritableFrame::concat(const Frame &f1, const Frame &f2) {
   this->write(f1.data(), f1.size(), 0);
   // second frame right after it
   this->write(f2.data(), f2.size(), f1.size());
+}
+
+void WritableFrame::write(const void* data, size_t size, size_t offset) {
+  memcpy((void*)((char*)this->ownedData + offset), data, size);
 }

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include "DepthStream/Frame.h"
 
 using namespace std;

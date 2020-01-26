@@ -37,18 +37,14 @@
 #include "DepthStream/OniSampleUtilities.h"
 #include "DepthStream/Transmitter.h"
 
+using namespace std;
 using namespace depth;
 
-Transmitter::Transmitter(int port) : port(port) {
-  bRunning=true;
-  this->thread = new std::thread(std::bind(&Transmitter::serverThread, this));
+void UdpSocketTransmitter::start() {
+  this->thread = new std::thread(std::bind(&UdpSocketTransmitter::serverThread, this));
 }
 
-Transmitter::~Transmitter() {
-  stop(false);
-}
-
-void Transmitter::stop(bool wait){
+void UdpSocketTransmitter::stop(bool wait){
   unbind();
   bRunning = false;
 
@@ -63,7 +59,7 @@ void Transmitter::stop(bool wait){
   }
 }
 
-bool Transmitter::transmit(const void* data, size_t size) {
+bool UdpSocketTransmitter::transmit(const void* data, size_t size) {
   // transmittion-header; 4-byte package length
   char header[4];
   header[0] = (char)((size >> 24) & 0xff);
@@ -73,7 +69,7 @@ bool Transmitter::transmit(const void* data, size_t size) {
   return transmitRaw(header, 4) && transmitRaw(data, size);
 }
 
-bool Transmitter::transmitRaw(const void* data, size_t size){
+bool UdpSocketTransmitter::transmitRaw(const void* data, size_t size){
   if (!bConnected) {
     // std::cout << "no client, didn't sent " << size << " bytes." << std::endl;
     return false;
@@ -98,10 +94,10 @@ bool Transmitter::transmitRaw(const void* data, size_t size){
   return true;
 }
 
-bool Transmitter::bind() {
-#ifdef _WIN32
-  makeSureWindowSocketsAreInitialized();
-#endif
+bool UdpSocketTransmitter::bind() {
+  #ifdef _WIN32
+    makeSureWindowSocketsAreInitialized();
+  #endif
 
   struct sockaddr_in serv_addr;
   sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -110,11 +106,11 @@ bool Transmitter::bind() {
   setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (char*)&option, sizeof(option));
 
   if (sockfd < 0) {
-#ifdef _WIN32
-	  std::cerr << "ERROR opening socket, WSAGetLastError gives: " << WSAGetLastError() << std::endl;
-#else
-     error("ERROR opening socket");
-#endif
+  #ifdef _WIN32
+      std::cerr << "ERROR opening socket, WSAGetLastError gives: " << WSAGetLastError() << std::endl;
+  #else
+      error("ERROR opening socket");
+  #endif
      return false;
    }
 
@@ -135,17 +131,17 @@ bool Transmitter::bind() {
   return true;
 }
 
-void Transmitter::unbind() {
-#ifdef _WIN32
-  closesocket(sockfd);
-  closesocket(clientsocket);
-#else
-  close(sockfd);
-  close(clientsocket);
-#endif
+void UdpSocketTransmitter::unbind() {
+  #ifdef _WIN32
+    closesocket(sockfd);
+    closesocket(clientsocket);
+  #else
+    close(sockfd);
+    close(clientsocket);
+  #endif
 }
 
-void Transmitter::serverThread() {
+void UdpSocketTransmitter::serverThread() {
   struct sockaddr_in cli_addr;
   int n;
 
@@ -156,11 +152,11 @@ void Transmitter::serverThread() {
 
     if(bBound) {
       if(!bConnected) {
-#ifdef _WIN32
-        int clilen = sizeof(cli_addr);
-#else
-        socklen_t clilen = sizeof(cli_addr);
-#endif
+  #ifdef _WIN32
+          int clilen = sizeof(cli_addr);
+  #else
+          socklen_t clilen = sizeof(cli_addr);
+  #endif
         clientsocket = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
         if (clientsocket < 0) {
           error("ERROR on accept");
@@ -178,11 +174,11 @@ void Transmitter::serverThread() {
           std::cerr << "TODO: handle incoming data in depth::Transmitter, disconnecting for now" << std::endl;
         }
 
-#ifdef _WIN32
+  #ifdef _WIN32
 		closesocket(clientsocket);
-#else
+  #else
 		close(clientsocket);
-#endif
+  #endif
 
 
       }
@@ -190,4 +186,21 @@ void Transmitter::serverThread() {
 
     Sleep(this->cycleSleep);
   }
+}
+
+void OscTransmitter::start() {
+  // cout << "OscTransmitter.start" << endl;
+  //TODO start service broadcaster
+  this->serviceRef = discover::OscFrameService::create();
+  this->serviceProviderRef = discover::ServiceProvider::create("depthframes", this->serviceRef);
+}
+
+void OscTransmitter::stop(bool wait) {
+  this->serviceProviderRef->stop();
+  this->serviceRef->stop();
+}
+
+bool OscTransmitter::transmit(const void* data, size_t size) {
+  if (this->serviceRef)
+    this->serviceRef->submit(data,size);
 }

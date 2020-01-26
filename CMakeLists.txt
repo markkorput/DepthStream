@@ -7,6 +7,8 @@ project(DepthStream VERSION 0.1.1)
 
 find_package(ZLIB)
 find_package (Threads)
+find_package (liblo)
+include (${CMAKE_CURRENT_LIST_DIR}/cmake/Findliblo.cmake)
 
 ##############################################
 # Create target and set properties
@@ -24,8 +26,9 @@ target_include_directories(DepthStream
     PUBLIC 
         $<INSTALL_INTERFACE:include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>
-    # PRIVATE
-    #     ${CMAKE_CURRENT_LIST_DIR}/src
+    PRIVATE
+      ${LIBLO_INCLUDE_DIRS}
+     #${CMAKE_CURRENT_LIST_DIR}/src
 )
 
 # specify the C++ standard
@@ -42,6 +45,7 @@ target_link_libraries(DepthStream
     PRIVATE
       ${ZLIB_LIBRARIES}
       ${CMAKE_THREAD_LIBS_INIT}
+      ${LIBLO_LIBRARIES}
 )
 
 

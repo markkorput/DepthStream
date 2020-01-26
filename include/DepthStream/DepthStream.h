@@ -19,6 +19,7 @@
 #include "Buffer.h"
 #include "Receiver.h"
 #include "Transmitter.h"
+#include "TransmitterAgent.h"
 #include "Compressor.h"
 #include "Inflater.h"
 #include "Recorder.h"

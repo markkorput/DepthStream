@@ -6,6 +6,7 @@ project(DepthStream VERSION 0.1.1)
 # Declare dependencies
 
 find_package(ZLIB)
+find_package (Threads)
 
 ##############################################
 # Create target and set properties
@@ -22,9 +23,9 @@ add_library(DepthStream::DepthStream ALIAS DepthStream)
 target_include_directories(DepthStream
     PUBLIC 
         $<INSTALL_INTERFACE:include>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>
     # PRIVATE
-    #     ${CMAKE_CURRENT_SOURCE_DIR}/src
+    #     ${CMAKE_CURRENT_LIST_DIR}/src
 )
 
 # specify the C++ standard
@@ -40,6 +41,7 @@ target_link_libraries(DepthStream
     #     Boost::regex
     PRIVATE
       ${ZLIB_LIBRARIES}
+      ${CMAKE_THREAD_LIBS_INIT}
 )
 
 

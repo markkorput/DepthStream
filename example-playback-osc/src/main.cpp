@@ -3,6 +3,7 @@
 #include <iostream>
 #include "key_handler.h"
 #include <DepthStream/DepthStream.h>
+#include <discover/all.h>
 
 using namespace std;
 

@@ -28,7 +28,6 @@
 #endif
 
 #include <thread>
-#include "DepthStream/discover.h"
 
 namespace depth {
   class BaseTransmitter;

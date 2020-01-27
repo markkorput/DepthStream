@@ -8,7 +8,7 @@ project(DepthStream VERSION 0.1.1)
 find_package(ZLIB)
 find_package (Threads)
 find_package (liblo)
-include (${CMAKE_CURRENT_LIST_DIR}/cmake/Findliblo.cmake)
+include (${CMAKE_CURRENT_LIST_DIR}/lib/discover/CMakeLists.txt)
 
 ##############################################
 # Create target and set properties
@@ -42,6 +42,8 @@ target_link_libraries(DepthStream
     #     Boost::boost RapidJSON::RapidJSON
     # PRIVATE
     #     Boost::regex
+    PUBLIC
+      Discover::Discover
     PRIVATE
       ${ZLIB_LIBRARIES}
       ${CMAKE_THREAD_LIBS_INIT}

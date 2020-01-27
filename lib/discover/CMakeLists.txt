@@ -24,11 +24,11 @@ add_library(Discover::Discover ALIAS Discover)
 
 target_include_directories(Discover
     PUBLIC 
-        $<INSTALL_INTERFACE:include>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>
+      $<INSTALL_INTERFACE:include>
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>
     PRIVATE
       ${LIBLO_INCLUDE_DIRS}
-     #${CMAKE_CURRENT_LIST_DIR}/src
+      #${CMAKE_CURRENT_LIST_DIR}/src
 )
 
 # specify the C++ standard

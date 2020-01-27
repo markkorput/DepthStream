@@ -1,8 +1,10 @@
 #include <cstdio>
 #include <iostream>
 #include <functional>
+#include <chrono>
 
 #include "discover/osc/PacketService.h"
+#include "discover/osc/osc.h"
 
 using namespace std;
 using namespace std::placeholders;
@@ -18,6 +20,12 @@ void PacketService::start() {
     [this](const std::string& host, int port) {
       this->packetSenderRef->addUdpConsumer(host,port);
     });
+  
+  // start broadcast interval
+
+  // auto ms = (uint32_t)std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now()).count();
+  mUpdateTime = getTime();
+  mNextBroadcastTime = getTime();
 }
 
 void PacketService::stop() {
@@ -28,6 +36,15 @@ void PacketService::stop() {
 
   if (this->packetSenderRef) {
     this->packetSenderRef = nullptr;
+  }
+}
+
+void PacketService::update(uint32_t dtMs) {
+  mUpdateTime += dtMs;
+
+  if (this->serviceConnectionListenerRef && mUpdateTime >= mNextBroadcastTime) {
+    broadcast_service(mServiceId, mPort, this->serviceConnectionListenerRef->getUrl());
+    mNextBroadcastTime = getTime() + mBroadcastIntervalMs;
   }
 }
 

@@ -15,19 +15,21 @@ int main(int argc, char * argv[])
   }
 
   string file = argv[1];
-  int port = 4445; // port on which to receive new connections
+  int port = argc >= 3 ? stoi(argv[2]) : 4445;
 
+  // Start packet-sending service, identifier "depthframes", accepting
+  // new connections on port-number: <port>
   discover::osc::service::PacketService service("depthframes", port);
 
   cout << "Starting player with file " << file << endl;
   depth::Playback playback;
-
   playback.start(file);
 
   bool keepGoing = true;
   KeyHandler::set(&keepGoing);
  
   while(keepGoing) {
+    service.update();
     playback.update([&service](void* data, size_t size){
       service.submit(data, size);
     });

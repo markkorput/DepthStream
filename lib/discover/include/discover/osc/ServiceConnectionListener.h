@@ -26,6 +26,8 @@ namespace discover { namespace osc { namespace service {
       void start();
       void stop();
 
+      const std::string& getUrl() { return mUrl; }
+
     protected:
       void onConnectRequest(std::string host, int port);
 
@@ -34,6 +36,7 @@ namespace discover { namespace osc { namespace service {
       int mPort = 4445;
       std::string serviceTypeId;
       UdpRemoteFunc mUdpRemoteFunc = nullptr;
+      std::string mUrl = "";
 
       void* serverThread = NULL;
   };

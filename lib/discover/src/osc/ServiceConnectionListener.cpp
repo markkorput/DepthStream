@@ -16,19 +16,30 @@ ServiceConnectionListenerRef ServiceConnectionListener::create(const string& ser
 }
 
 void ServiceConnectionListener::start() {
-  printf("starting OSC server on port: %i\n", this->mPort);
-  auto st = new lo::ServerThread(mPort);
+  int attempt = 0;
+  lo::ServerThread* st;
+  int port = mPort;
+
+  do {
+    printf("Attempting to start OSC server on port: %i\n", port);
+    st = new lo::ServerThread(port);
+    port += 1;
+  } while (!st->is_valid() && port < (mPort+10));
 
   if (!st->is_valid()) {
-      std::cout << "Faield to create valid lo::ServerThread." << std::endl;
+      std::cout << "Failed to create valid lo::ServerThread. (ports already in use by other services)" << std::endl;
       return;
   }
+
+  mPort += port-1;
 
   // st->set_callbacks([&st](){
   //     printf("Thread init: %p.\n",&st);},
   //     [](){printf("Thread cleanup.\n");});
 
-  // std::cout << "URL: " << st->url() << std::endl;
+  std::cout << "URL: " << st->url() << std::endl;
+  this->mUrl = st->url();
+
   string addr ="/discover/connect/"+this->serviceTypeId;
   printf("registering OSC handler for: %s\n", addr.c_str());
 

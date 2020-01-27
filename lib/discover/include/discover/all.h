@@ -1,3 +1,3 @@
 #pragma once
 
-#include "osc/service.h"
+#include "osc/all.h"

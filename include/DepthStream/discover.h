@@ -5,82 +5,88 @@
 #include <vector>
 #include <string>
 
-namespace discover {
+namespace discover { namespace osc {
 
-  class Service;
-  typedef std::shared_ptr<Service> ServiceRef;
+  namespace service {
+    class ServiceConnectionListener;
+    typedef std::shared_ptr<ServiceConnectionListener> ServiceConnectionListenerRef;
 
-  class Service {
-    public:
-      virtual void start(){}
-      virtual void stop(){}
+    class ServiceConnectionListener {
+      public:
+        typedef std::function<void(const std::string& host, int port)> UdpRemoteFunc;
       
-      virtual void addUdpConsumer(const std::string& host, int port) {}
-  };
+      public:
+        static ServiceConnectionListenerRef create(const std::string& serviceTypeId, int port, UdpRemoteFunc udpRemoteFunc);
+
+      public:
+
+        ServiceConnectionListener(const std::string& serviceTypeId, int port, UdpRemoteFunc func) 
+          : serviceTypeId(serviceTypeId), mPort(port), mUdpRemoteFunc(func){
+            this->start();
+          }
+
+        void start();
+        void stop();
+
+      protected:
+        void onConnectRequest(std::string host, int port);
+
+      private:
+
+        int mPort = 4445;
+        std::string serviceTypeId;
+        UdpRemoteFunc mUdpRemoteFunc = nullptr;
+
+        void* serverThread = NULL;
+    };
+
+
+    class PacketSender;
+    typedef std::shared_ptr<PacketSender> PacketSenderRef;
+
+    class PacketSender {
+
+      typedef struct {
+        std::string host;
+        std::string port;
+      } ConsumerInfo;
+
+      public:
+        static PacketSenderRef create() {
+          return std::make_shared<PacketSender>();
+        }
+
+      public:
+
+        // PacketSender() {}
+
+        void submit(const void* data, size_t size);
+        void addUdpConsumer(const std::string& host, int port);
+
+      private:
+
+        std::string addr = "/depthframe";
+        std::vector<ConsumerInfo> consumers;
+    };
 
 
 
-  class ServiceProvider;
-  typedef std::shared_ptr<ServiceProvider> ServiceProviderRef;
-
-  class ServiceProvider {
-    public:
-      static ServiceProviderRef create(const std::string& serviceTypeId, ServiceRef service=nullptr);
-
-    public:
-
-      ServiceProvider(const std::string& serviceTypeId, ServiceRef service) 
-        : serviceTypeId(serviceTypeId), serviceRef(service){
+    class PacketService {
+      public:
+        PacketService(std::string serviceId, int port) : mServiceId(serviceId), mPort(port) {
           this->start();
         }
 
-      void start();
-      void stop();
+        void submit(const void* data, size_t size);
+        void start();
+        void stop();
 
-    protected:
-      void onConnectRequest(std::string host, int port);
+      private:
+        std::string mServiceId;
+        int mPort;
+        ServiceConnectionListenerRef serviceConnectionListenerRef = nullptr;
+        PacketSenderRef packetSenderRef = nullptr;
+    };
+  }
+ } } // namespace discover namespace osc
 
-    private:
-
-      int mPort = 4445;
-      std::string serviceTypeId;
-      ServiceRef serviceRef = nullptr;
-
-      void* serverThread = NULL;
-  };
-
-
-
-  class OscFrameService;
-  typedef std::shared_ptr<OscFrameService> OscFrameServiceRef;
-
-  class OscFrameService : public Service {
-    public:
-
-    typedef struct {
-      std::string host;
-      std::string port;
-    } ConsumerInfo;
-
-    public:
-      static OscFrameServiceRef create() {
-        return std::make_shared<OscFrameService>();
-      }
-
-    public:
-
-      OscFrameService() {
-        this->start();
-      }
-    
-      void submit(const void* data, size_t size);
-      void addUdpConsumer(const std::string& host, int port) override;
-
-    private:
-
-      std::string addr = "/depthframe";
-      std::vector<ConsumerInfo> consumers;
-  };
-
-
-}

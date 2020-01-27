@@ -187,20 +187,3 @@ void UdpSocketTransmitter::serverThread() {
     Sleep(this->cycleSleep);
   }
 }
-
-void OscTransmitter::start() {
-  // cout << "OscTransmitter.start" << endl;
-  //TODO start service broadcaster
-  this->serviceRef = discover::OscFrameService::create();
-  this->serviceProviderRef = discover::ServiceProvider::create("depthframes", this->serviceRef);
-}
-
-void OscTransmitter::stop(bool wait) {
-  this->serviceProviderRef->stop();
-  this->serviceRef->stop();
-}
-
-bool OscTransmitter::transmit(const void* data, size_t size) {
-  if (this->serviceRef)
-    this->serviceRef->submit(data,size);
-}

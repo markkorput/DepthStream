@@ -9,12 +9,14 @@
 using namespace std;
 using namespace std::placeholders;
 using namespace discover;
+using namespace discover::osc;
+using namespace discover::osc::service;
 
-ServiceProviderRef ServiceProvider::create(const string& serviceTypeId, ServiceRef service) {
-  return make_shared<ServiceProvider>(serviceTypeId, service);
+ServiceConnectionListenerRef ServiceConnectionListener::create(const string& serviceTypeId, int port, UdpRemoteFunc udpRemoteFunc) {
+  return make_shared<ServiceConnectionListener>(serviceTypeId, port, udpRemoteFunc);
 }
 
-void ServiceProvider::start() {
+void ServiceConnectionListener::start() {
   printf("starting OSC server on port: %i\n", this->mPort);
   auto st = new lo::ServerThread(mPort);
 
@@ -42,22 +44,22 @@ void ServiceProvider::start() {
   this->serverThread = (void*) st;
 }
 
-void ServiceProvider::stop() {
+void ServiceConnectionListener::stop() {
   if (serverThread) {
     lo_server_thread_free((lo::ServerThread*)serverThread);
     serverThread = NULL;
   }
 }
 
-void ServiceProvider::onConnectRequest(std::string host, int port) {
+void ServiceConnectionListener::onConnectRequest(std::string host, int port) {
   // std::cout << "connect message: "<<host<<":" << port << std::endl;
-  
-  if (this->serviceRef) {
-    this->serviceRef->addUdpConsumer(host, port);
-  }
+  if (this->mUdpRemoteFunc)
+    this->mUdpRemoteFunc(host,port);
 }
 
-void OscFrameService::addUdpConsumer(const std::string& host, int port) {
+
+
+void PacketSender::addUdpConsumer(const std::string& host, int port) {
   std::cout << "new consumer: "<<host<<":" << port << std::endl;
   ConsumerInfo i;
   i.host = host;
@@ -65,12 +67,38 @@ void OscFrameService::addUdpConsumer(const std::string& host, int port) {
   this->consumers.push_back(i);
 }
 
-void OscFrameService::submit(const void* data, size_t size) {
+void PacketSender::submit(const void* data, size_t size) {
   for (auto& c : consumers) {
-    // cout << "OscFrameService::submit sending to "<<size<<" bytes to " << c.host << ":" << c.port << endl;
+    // cout << "PacketSender::submit sending to "<<size<<" bytes to " << c.host << ":" << c.port << endl;
     lo::Address a(c.host, c.port);
 
     lo_blob blob = lo_blob_new(size, data);
     a.send(this->addr.c_str(), "b", blob);
   }
+}
+
+void PacketService::start() {
+  this->packetSenderRef = PacketSender::create();
+
+  this->serviceConnectionListenerRef = ServiceConnectionListener::create("depthframes", mPort,
+    // udp connection listener; add consumer to sender
+    [this](const std::string& host, int port) {
+      this->packetSenderRef->addUdpConsumer(host,port);
+    });
+}
+
+void PacketService::stop() {
+  if (this->serviceConnectionListenerRef) {
+    this->serviceConnectionListenerRef->stop();
+    this->serviceConnectionListenerRef = nullptr;
+  }
+
+  if (this->packetSenderRef) {
+    this->packetSenderRef = nullptr;
+  }
+}
+
+void PacketService::submit(const void* data, size_t size) {
+  if (this->packetSenderRef)
+    this->packetSenderRef->submit(data,size);
 }

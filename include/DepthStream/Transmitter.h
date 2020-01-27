@@ -111,42 +111,6 @@ namespace depth {
       int cycleSleep=200;
   };
 
-  class OscTransmitter;
-  typedef std::shared_ptr<OscTransmitter> OscTransmitterRef;
-  
-  class OscTransmitter : public BaseTransmitter {
-    public:
-
-      static OscTransmitterRef create(int port=4445) {
-        return std::make_shared<OscTransmitter>(port);
-      }
-
-    public:
-
-      /// The constructor immediately starts the network server thread
-      OscTransmitter(int port) : mPort(port) {
-        this->start();
-      }
-
-      ~OscTransmitter() { this->stop(); }
-
-      /// Transmits a the given frame-data if the network-server has a connected client
-      bool transmit(const void* data, size_t size) override;
-
-      void start() override;
-
-      /// Stops the network server
-      void stop(bool wait=true) override;
-
-    protected:
-
-    private:
-
-      discover::OscFrameServiceRef serviceRef = nullptr;
-      discover::ServiceProviderRef serviceProviderRef = nullptr;
-      int mPort;
-  };
-
   // default transmitter class
   typedef UdpSocketTransmitter Transmitter;
   typedef std::shared_ptr<Transmitter> TransmitterRef;

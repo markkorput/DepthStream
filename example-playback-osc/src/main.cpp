@@ -14,12 +14,10 @@ int main(int argc, char * argv[])
   }
 
   string file = argv[1];
+  int port = 4445; // port on which to receive new connections
 
-  // depth::TransmitterAgent agent(argc, argv);
-  // agent.setDoCompress(false);
+  discover::osc::service::PacketService service("depthframes", port);
 
-  
-  auto transmitter = depth::OscTransmitter::create();
   cout << "Starting player with file " << file << endl;
   depth::Playback playback;
 
@@ -29,15 +27,13 @@ int main(int argc, char * argv[])
   KeyHandler::set(&keepGoing);
  
   while(keepGoing) {
-    playback.update([transmitter](void* data, size_t size){
-      //   // if (agent.getVerbose()) cout << size << "-byte frame" << endl;
-      // agent.submit(data,size);
-      transmitter->transmit(data,size);
+    playback.update([&service](void* data, size_t size){
+      service.submit(data, size);
     });
   }
 
   cout << "Shutting down." << endl;
   playback.stop();
-  transmitter->stop();
+  service.stop();
   return 0;
 }

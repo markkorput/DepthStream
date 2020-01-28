@@ -13,28 +13,39 @@ using namespace discover::osc;
 using namespace discover::osc::service;
 
 void PacketService::start() {
-  this->serviceConnectionListener = ServiceConnectionListener::start("depthframes", mPort,
+  auto server = server::create(mPort);
+
+  if (!server) {
+    return;
+  }
+
+  connect::addConnectRequestCallback(server, "depthframes",
     // udp connection listener; add consumer to sender
     [this](const std::string& host, int port) {
-      osc::add_consumer(mConsumers, host, port);
+      // cout << "adding consumer: " << port <<endl;
+      osc::connect::addConsumer(mConsumers, host, port);
     });
-  mConnectionListenerUrl = ServiceConnectionListener::get_url(this->serviceConnectionListener);
+
+  mConnectionListenerUrl = server::get_url(server);
+
+  this->connectionListener = server;
+  server::start(server);
   
   // start broadcast interval
   mUpdateTime = mNextBroadcastTime = getTime();
 }
 
 void PacketService::stop() {
-  if (serviceConnectionListener) {
-    ServiceConnectionListener::stop(serviceConnectionListener);
-    serviceConnectionListener = NULL;
+  if (connectionListener) {
+    server::destroy(connectionListener);
+    connectionListener = NULL;
   }
 }
 
 void PacketService::update(uint32_t dtMs) {
   mUpdateTime += dtMs;
 
-  if (this->serviceConnectionListener && mUpdateTime >= mNextBroadcastTime) {
+  if (this->connectionListener && mUpdateTime >= mNextBroadcastTime) {
     broadcast::announce(mServiceId, mConnectionListenerUrl);
     mNextBroadcastTime = getTime() + mBroadcastIntervalMs;
   }
@@ -51,7 +62,7 @@ void PacketService::submit(const void* data, size_t size) {
   }
 
   // cout << "sending packet (size=" << packet->size << ")" << endl;
-  osc::sendPacket(mConsumers, packet->data, packet->size, this->messageAddr);
+  osc::packet::send(mConsumers, packet->data, packet->size);
 }
 
 

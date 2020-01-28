@@ -46,16 +46,3 @@ bool discover::osc::server::destroy(InstanceHandle instance) {
 const std::string discover::osc::server::get_url(InstanceHandle instance) {
   return ((lo::ServerThread*)instance)->url();
 }
-
-void discover::osc::server::add_packet_callback(server::InstanceHandle serverHandle, DataFunc callback) {
-  string addr ="/data";
-
-  auto st = (lo::ServerThread*)serverHandle;
-
-  printf("registering OSC handler for: %s\n", addr.c_str());
-  st->add_method(addr, "b", [callback](lo_arg **argv, int) {
-    void* data = &argv[0]->blob.data;
-    size_t size = argv[0]->blob.size;
-    callback(data, size);
-  });
-}

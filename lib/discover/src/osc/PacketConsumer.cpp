@@ -47,7 +47,7 @@ bool PacketConsumer::startBroadcastListeners() {
       continue;
     }
 
-    broadcast::add_service_found_callback(handle, this->mServiceId, [this](std::string host, int port){
+    broadcast::addServiceFoundCallback(handle, this->mServiceId, [this](std::string host, int port){
       this->onMainThread([this, host, port](){
         this->onServiceFound(host, port);
       });
@@ -82,7 +82,8 @@ server::InstanceHandle PacketConsumer::startDataListener() {
     return NULL;
   }
 
-  server::add_packet_callback(server, [this](const void* data, size_t size){
+  packet::addCallback(server, [this](const void* data, size_t size){
+    cout << "Received packet data" << endl;
     this->onData(data, size);
   });
 

@@ -25,33 +25,11 @@ void discover::osc::sendPacket(const std::vector<ConsumerInfo>& consumers, const
   }
 }
 
+
 using namespace discover::osc::ServiceConnectionListener;
 
 Instance* discover::osc::ServiceConnectionListener::start(const std::string& serviceId, int port, ConsumerInfoCallback callback, int maxPortAttempts) {
-  lo::ServerThread* st;
-
-  { // starting server
-    int maxport = port + maxPortAttempts;
-
-    do {
-      printf("Attempting to start OSC server on port: %i\n", port);
-      st = new lo::ServerThread(port);
-      if (st->is_valid()) break;
-      port++;
-    } while(port < maxport);
-
-    if (!st->is_valid()) {
-      std::cout << "Failed to create valid lo::ServerThread. (ports already in use by other services)" << std::endl;
-      return NULL;
-    }
-  }
-
-  // st->set_callbacks([&st](){
-  //     printf("Thread init: %p.\n",&st);},
-  //     [](){printf("Thread cleanup.\n");});
-
-  // std::cout << "URL: " << st->url() << std::endl;
-  // this->mUrl = st->url();
+  lo::ServerThread* st = (lo::ServerThread*)server::create(port, maxPortAttempts);
 
   string addr ="/discover/connect/"+serviceId;
   printf("registering OSC handler for: %s\n", addr.c_str());
@@ -65,14 +43,4 @@ Instance* discover::osc::ServiceConnectionListener::start(const std::string& ser
   st->start();
 
   return (Instance*) st;
-}
-
-bool discover::osc::ServiceConnectionListener::stop(Instance* instance) {
-  if (instance == NULL) return false;
-  lo_server_thread_free((lo::ServerThread*)instance);
-  return true;
-}
-
-const std::string discover::osc::ServiceConnectionListener::get_url(Instance* instance) {
-  return ((lo::ServerThread*)instance)->url();
 }

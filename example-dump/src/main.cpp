@@ -2,6 +2,7 @@
 #include <string>
 #include "key_handler.h"
 #include <DepthStream/DepthStream.h>
+#include <discover/osc/PacketConsumer.h>
 
 using namespace std;
 
@@ -29,20 +30,23 @@ int main(int argc, char * argv[])
 
 
   depth::ReceiverRef receiverRef = nullptr;
-  
   depth::Buffer buffer;
+  discover::osc::PacketConsumerRef packetConsumerRef = nullptr;
+  auto inflaterRef = std::make_shared<depth::Inflater>(1280 * 720 * 2 /* initial buffer size, optional */);
+  
+  auto datahandler = [inflaterRef, &buffer](const void* data, size_t size){
+    if (inflaterRef->inflate(data, size)) {
+      buffer.write(inflaterRef->getData(), inflaterRef->getSize());
+    }
+  };
+
 
   if (useConsumer) {
+    packetConsumerRef = discover::osc::PacketConsumer::create("depthframes", datahandler);
   } else {
     cout << "Creating receiver on: " << host << ":" << port << endl;
     receiverRef = depth::Receiver::createAndStart(host, port);
-    auto inflaterRef = std::make_shared<depth::Inflater>(1280 * 720 * 2 /* initial buffer size, optional */);
-    // receiverRef->setOutputTo(buffer);
-    receiverRef->setOutput([inflaterRef, &buffer](const void* data, size_t size){
-      if (inflaterRef->inflate(data, size)) {
-        buffer.write(inflaterRef->getData(), inflaterRef->getSize());
-      }
-    });
+    receiverRef->setOutput(datahandler);
   }
 
   bool keepGoing = true;

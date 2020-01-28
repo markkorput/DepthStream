@@ -24,7 +24,7 @@ namespace discover { namespace osc { namespace service {
       ~PacketService() { this->stop(); }
 
       /**
-       * Initializes the internal PacketSender and ServiceConnectionListener  instances
+       * Starts listeing for incoming connection requests
        * and resets the internal broadcast interval timer.
        */
       void start();
@@ -68,10 +68,9 @@ namespace discover { namespace osc { namespace service {
     private:
       std::string mServiceId;
       int mPort;
-      std::string messageAddr = "/frame";
-      ServiceConnectionListener::Instance* serviceConnectionListener = NULL;
+      server::InstanceHandle connectionListener = NULL;
       std::string mConnectionListenerUrl;
-      std::vector<osc::ConsumerInfo> mConsumers;
+      std::vector<connect::ConsumerInfo> mConsumers;
 
       std::vector<discover::middleware::PacketMiddlewareFunc> mMiddlewares;
       // broadcast timer

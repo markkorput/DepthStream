@@ -121,6 +121,7 @@ bool TransmitterAgent::transmitFrame(const void* data, size_t size) {
     size = compressor->getSize();
   }
 
+  // std::cout << "transmit" << std::endl; 
   if (!transmitter->transmit((const char*)data, size)) {
     if(bVerbose) std::cout << "transmit of " << size << "-byte compressed depth frame FAILED (probably no connection)" << std::endl;
     return false;

@@ -30,29 +30,8 @@
 #include <thread>
 
 namespace depth {
-  class BaseTransmitter;
-  typedef std::shared_ptr<BaseTransmitter> BaseTransmitterRef;
-
-  /**
-   * \brief BaseTransmitter interface class
-   */
-  class BaseTransmitter {
-    public:
-
-      /// The constructor immediately starts the network server thread
-      BaseTransmitter() { this->start(); }
-
-      /// The destructor stops the network-server if it's still running
-      ~BaseTransmitter() { this->stop(); }
-
-      /// Transmits a the given frame-data if the network-server has a connected client
-      virtual bool transmit(const void* data, size_t size) {return false;}
-
-      virtual void start() {}
-
-      /// Stops the network server
-      virtual void stop(bool wait=true) {}
-  };
+  class Transmitter;
+  typedef std::shared_ptr<Transmitter> TransmitterRef;
 
   /**
    * \brief Network stream transmitter class
@@ -61,27 +40,21 @@ namespace depth {
    * incoming connection requests over TCP and starts sending a (compressed) stream
    * of Frames when a connection is established.
    */
-  class UdpSocketTransmitter;
-  typedef std::shared_ptr<UdpSocketTransmitter> UdpSocketTransmitterRef;
-  
-  class UdpSocketTransmitter : public BaseTransmitter {
-    public:
-
-      static UdpSocketTransmitterRef create(int port=4445) {
-        return std::make_shared<UdpSocketTransmitter>(port);
-      }
+  class Transmitter {
 
     public:
 
       /// The constructor immediately starts the network server thread
-      UdpSocketTransmitter(int port=4445) : port(port) {}
+      Transmitter(int port);
+
+      /// The destructor stops the network-server if it's still running
+      ~Transmitter();
 
       /// Transmits a the given frame-data if the network-server has a connected client
-      bool transmit(const void* data, size_t size) override;
+      bool transmit(const void* data, size_t size);
 
-      void start() override;
       /// Stops the network server
-      void stop(bool wait=true) override;
+      void stop(bool wait=true);
 
     protected:
 
@@ -109,8 +82,4 @@ namespace depth {
       int sockfd, clientsocket, portno;
       int cycleSleep=200;
   };
-
-  // default transmitter class
-  typedef UdpSocketTransmitter Transmitter;
-  typedef std::shared_ptr<Transmitter> TransmitterRef;
 }

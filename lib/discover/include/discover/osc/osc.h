@@ -6,52 +6,101 @@
 
 
 namespace discover { namespace osc {
-  /**
-   * Broadcasts OSC message(s) announcing the presence and information of the service.
-   * 
-   * @param serviceId a string-based service identifier, that will be post-fixed to the 
-   * address field of the broadcasted OSC message(s).
-   * @param ports The (UDP) ports at which the broadcasted messages will be sent
-   * @param url The url of the service (ie. "osc.udp://hostname.local:4445/")
-   */
-  void broadcast_service(const std::string& serviceId, const std::vector<int>& ports, const std::string& url);
 
-  /**
-   * Uses broadcast_service(const std::string& serviceId, std::vector<int> ports, const std::string& url)
-   * method to broadcast the service announcement at the default ports: 4445, 4446 and 4447
-   */
-  inline void broadcast_service(const std::string& serviceId, const std::string& url) {
-    broadcast_service(serviceId, std::vector<int>{ 4445, 4446, 4447 }, url);
-  }
+  struct urlinfo {
+    std::string protocol, host, port, path, query;
+    urlinfo(const std::string& url_s);
+  };
 
-  namespace ServiceConnectionListener {
-    /**
-     * Dummy class for readability; note that we're using void pointers, instead of a
-     * lo::ServerThread pointers, to limit the dependency on the liblo library to osc.cpp
-     */
+  namespace server {
     typedef void Instance;
-    typedef std::function<void(const std::string& host, int port)> ConsumerInfoCallback;
+    typedef void* InstanceHandle;
 
-    Instance* start(const std::string& serviceId, int port, ConsumerInfoCallback callback, int maxPortAttempts=10);
-    bool stop(Instance* instance);
-    const std::string get_url(Instance* instance);
+    InstanceHandle create(int port, int maxPortAttempts, bool start=false);
+    inline InstanceHandle create(int port, bool start=false) {
+      return create(port, 25, start);
+    }
+
+    void start(InstanceHandle instance);
+    bool destroy(InstanceHandle instance);
+    const std::string get_url(InstanceHandle instance);
   }
 
-  typedef struct {
-    std::string host;
-    std::string port;
-  } ConsumerInfo;
+  namespace broadcast {
+    const std::vector<int> DEFAULT_PORTS{ 4445, 4446 };
+    typedef std::function<void(std::string, int)> ServiceInfoFunc;
 
-  inline void add_consumer(std::vector<ConsumerInfo> consumers, const std::string& host, int port) {
-    ConsumerInfo i;
-    i.host = host;
-    i.port = std::to_string(port);
-    consumers.push_back(i);
+    /**
+     * Broadcasts OSC message(s) announcing the presence and information of the service.
+     * 
+     * @param serviceId a string-based service identifier, that will be post-fixed to the 
+     * address field of the broadcasted OSC message(s).
+     * @param ports The (UDP) ports at which the broadcasted messages will be sent
+     * @param url The url of the service (ie. "osc.udp://hostname.local:4445/")
+     */
+    void announce(const std::string& serviceId, const std::vector<int>& ports, const std::string& url);
+
+    /**
+     * Uses announce(const std::string& serviceId, std::vector<int> ports, const std::string& url)
+     * method to broadcast the service announcement at the default ports: 4445, 4446 and 4447
+     */
+    inline void announce(const std::string& serviceId, const std::string& url) {
+      announce(serviceId, DEFAULT_PORTS, url);
+    }
+
+    void addServiceFoundCallback(server::InstanceHandle server, const std::string& serviceId, ServiceInfoFunc callback);
   }
 
-  void sendPacket(const std::vector<ConsumerInfo>& consumers, const void* data, size_t size, const std::string& messageAddr);
+  namespace connect {
+    typedef std::function<void(std::string, int)> ConsumerInfoCallback;
 
-  inline void sendPacket(const std::vector<ConsumerInfo>& consumers, const void* data, size_t size) {
-    sendPacket(consumers, data, size, "/data");
+    typedef struct {
+      std::string host;
+      std::string port;
+    } ConsumerInfo;
+
+    inline void addConsumer(std::vector<ConsumerInfo>& consumers, const std::string& host, int port) {
+      ConsumerInfo i;
+      i.host = host;
+      i.port = std::to_string(port);
+      consumers.push_back(i);
+    }
+
+    void sendConsumerConnectRequest(const std::string& serviceId, const std::string& serviceHost, int servicePort, const std::string& consumerUrl);
+    void addConnectRequestCallback(server::InstanceHandle server, const std::string& serviceId, ConsumerInfoCallback callback);
   }
+
+  namespace packet {
+    typedef std::function<void(const void*, size_t)> DataFunc;
+    const std::string DEFAULT_MESSAGE = "/data";
+    void* growBuffer(void* buffer, size_t currentsize, size_t newsize, bool freeOldBuffer);
+    void freeBuffer(void* buffer);
+
+    class Buffer {
+      public:
+        void* data = NULL;
+        size_t size = 0;
+
+        ~Buffer() {
+          if (data) freeBuffer(data);
+        }
+    };
+
+    void addCallback(server::InstanceHandle serverHandle, DataFunc callback, const std::string& messageAddr, Buffer* buffer);
+    
+    inline void addCallback(server::InstanceHandle serverHandle, DataFunc callback) {
+      addCallback(serverHandle, callback, DEFAULT_MESSAGE, NULL);
+    }
+
+    inline void addCallback(server::InstanceHandle serverHandle, DataFunc callback, Buffer& buffer) {
+      addCallback(serverHandle, callback, DEFAULT_MESSAGE, &buffer);
+    }
+
+    void send(const std::vector<connect::ConsumerInfo>& consumers, const void* data, size_t size, const std::string& messageAddr);
+
+    inline void send(const std::vector<connect::ConsumerInfo>& consumers, const void* data, size_t size) {
+      send(consumers, data, size, DEFAULT_MESSAGE);
+    }
+  }
+
 }}

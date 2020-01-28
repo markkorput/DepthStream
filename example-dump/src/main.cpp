@@ -20,8 +20,10 @@ int main(int argc, char * argv[])
     useConsumer = false;
   } else if (argc == 2) {
     port = stoi(argv[1]);
+  } else if (argc == 1) {
+    useConsumer = false;
   } else {
-    cout << "USAGE: DepthStreamDump (<host> <port>) | <port>" << endl;
+    cout << "USAGE:"<<endl<<"DepthStreamDump <host> <port>"<<endl<<"DepthStreamDump <port>" <<endl;
     return 0;
   }
 

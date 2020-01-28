@@ -6,23 +6,6 @@
 
 
 namespace discover { namespace osc {
-  /**
-   * Broadcasts OSC message(s) announcing the presence and information of the service.
-   * 
-   * @param serviceId a string-based service identifier, that will be post-fixed to the 
-   * address field of the broadcasted OSC message(s).
-   * @param ports The (UDP) ports at which the broadcasted messages will be sent
-   * @param url The url of the service (ie. "osc.udp://hostname.local:4445/")
-   */
-  void broadcast_service(const std::string& serviceId, const std::vector<int>& ports, const std::string& url);
-
-  /**
-   * Uses broadcast_service(const std::string& serviceId, std::vector<int> ports, const std::string& url)
-   * method to broadcast the service announcement at the default ports: 4445, 4446 and 4447
-   */
-  inline void broadcast_service(const std::string& serviceId, const std::string& url) {
-    broadcast_service(serviceId, std::vector<int>{ 4445, 4446, 4447 }, url);
-  }
 
   namespace server {
     typedef void Instance;
@@ -40,6 +23,30 @@ namespace discover { namespace osc {
     typedef std::function<void(const void*, size_t)> DataFunc;
 
     void add_packet_callback(server::InstanceHandle serverHandle, DataFunc callback);
+  }
+
+  namespace broadcast {
+    const std::vector<int> DEFAULT_PORTS{ 4445, 4446 };
+    typedef std::function<void(std::string, int)> ServiceInfoFunc;
+    /**
+     * Broadcasts OSC message(s) announcing the presence and information of the service.
+     * 
+     * @param serviceId a string-based service identifier, that will be post-fixed to the 
+     * address field of the broadcasted OSC message(s).
+     * @param ports The (UDP) ports at which the broadcasted messages will be sent
+     * @param url The url of the service (ie. "osc.udp://hostname.local:4445/")
+     */
+    void announce(const std::string& serviceId, const std::vector<int>& ports, const std::string& url);
+
+    /**
+     * Uses announce(const std::string& serviceId, std::vector<int> ports, const std::string& url)
+     * method to broadcast the service announcement at the default ports: 4445, 4446 and 4447
+     */
+    inline void announce(const std::string& serviceId, const std::string& url) {
+      announce(serviceId, DEFAULT_PORTS, url);
+    }
+
+    void add_service_found_callback(server::InstanceHandle server, const std::string& serviceId, ServiceInfoFunc callback);
   }
 
   namespace ServiceConnectionListener {

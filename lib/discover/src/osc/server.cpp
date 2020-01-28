@@ -14,7 +14,7 @@ InstanceHandle discover::osc::server::create(int port, int maxPortAttempts, bool
   int maxport = port + maxPortAttempts;
 
   do {
-    printf("Attempting to start OSC server on port: %i\n", port);
+    cout << "Attempting to start OSC server on port: "<< port << endl;
     st = new lo::ServerThread(port);
     if (st->is_valid()) break;
     port++;
@@ -36,15 +36,16 @@ void discover::osc::server::start(InstanceHandle instance) {
 }
 
 bool discover::osc::server::destroy(InstanceHandle instance) {
+  cout << "Destroying server: "<< ((lo::ServerThread*)instance)->url() << endl;
   if (instance == NULL) return false;
-  lo_server_thread_free((lo::ServerThread*)instance);
+  auto st = (lo::ServerThread*)instance;
+  delete st;
   return true;
 }
 
 const std::string discover::osc::server::get_url(InstanceHandle instance) {
   return ((lo::ServerThread*)instance)->url();
 }
-
 
 void discover::osc::server::add_packet_callback(server::InstanceHandle serverHandle, DataFunc callback) {
   string addr ="/data";

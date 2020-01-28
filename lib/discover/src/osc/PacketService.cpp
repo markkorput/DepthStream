@@ -35,13 +35,13 @@ void PacketService::update(uint32_t dtMs) {
   mUpdateTime += dtMs;
 
   if (this->serviceConnectionListener && mUpdateTime >= mNextBroadcastTime) {
-    broadcast_service(mServiceId, mConnectionListenerUrl);
+    broadcast::announce(mServiceId, mConnectionListenerUrl);
     mNextBroadcastTime = getTime() + mBroadcastIntervalMs;
   }
 }
 
 void PacketService::submit(const void* data, size_t size) {
-  cout << "PacketService::submit siez=" << size << endl;
+  // cout << "PacketService::submit size=" << size << endl;
   middleware::Packet initialpacket { data, size };
   middleware::Packet* packet = &initialpacket;
 
@@ -50,7 +50,7 @@ void PacketService::submit(const void* data, size_t size) {
     if (!packet) return; // middleware aborted
   }
 
-  cout << "sending packet (size=" << packet->size << ")" << endl;
+  // cout << "sending packet (size=" << packet->size << ")" << endl;
   osc::sendPacket(mConsumers, packet->data, packet->size, this->messageAddr);
 }
 

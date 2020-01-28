@@ -5,6 +5,7 @@
 #include <string>
 #include <chrono>
 #include <math.h>
+#include <mutex>
 
 #include "osc.h"
 #include <discover/middleware.h>
@@ -41,14 +42,31 @@ namespace discover { namespace osc {
         }
       }
 
+      ~PacketConsumer() { stop(); }
+
       void start();
       void stop();
+      void update();
 
     protected:
 
       inline void onData(const void* data, size_t size) {
         if (this->dataCallback)
           this->dataCallback(data, size);
+      }
+
+      void onServiceFound(const std::string& host, int port);
+
+      bool startBroadcastListeners();
+      void stopBroadcastListeners();
+
+      bool startDataListener();
+      void stopDataListener();
+
+      void sendConnectRequest(const std::string& host, int port);
+
+      inline void onMainThread(std::function<void()> func) {
+        mUpdateFuncs.push_back(func);
       }
 
     private:
@@ -59,5 +77,15 @@ namespace discover { namespace osc {
 
       DataHandler dataCallback = nullptr;
       server::InstanceHandle dataServerHandle = NULL;
+      std::vector<server::InstanceHandle> mBroadcastServerHandles;
+
+      struct {
+        std::string host = "";
+        int port = 0;
+      } mServiceInfo;
+
+      std::mutex mutex;
+
+      std::vector<std::function<void()>> mUpdateFuncs;
   };
 }}

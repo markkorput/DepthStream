@@ -21,8 +21,8 @@ int main(int argc, char * argv[])
     useConsumer = false;
   } else if (argc == 2) {
     port = stoi(argv[1]);
-  } else if (argc == 1) {
-    useConsumer = false;
+  } else if (argc < 2) {
+    // useConsumer = true;
   } else {
     cout << "USAGE:"<<endl<<"DepthStreamDump <host> <port>"<<endl<<"DepthStreamDump <port>" <<endl;
     return 0;
@@ -54,6 +54,7 @@ int main(int argc, char * argv[])
  
 
   while(keepGoing) {
+    if (packetConsumerRef) packetConsumerRef->update();
     depth::emptyBuffer(buffer, [](const void* data, size_t size){
       cout << "Received frame: " << size << " bytes" << endl;
     });

@@ -49,6 +49,10 @@ namespace discover { namespace osc {
     void add_service_found_callback(server::InstanceHandle server, const std::string& serviceId, ServiceInfoFunc callback);
   }
 
+  namespace connect {
+    void sendConsumerConnectRequest(const std::string& serviceId, const std::string& serviceHost, int servicePort, const std::string& consumerUrl);
+  }
+
   namespace ServiceConnectionListener {
     /**
      * Dummy class for readability; note that we're using void pointers, instead of a

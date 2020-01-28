@@ -14,17 +14,6 @@ void PacketConsumer::start() {
   startBroadcastListeners();
 }
 
-void PacketConsumer::onServiceFound(const std::string& host, int port) {
-  if (dataServerHandle) return;
-
-  stopBroadcastListeners();
-  
-  if (startDataListener()) {
-      sendConnectRequest(host, port);
-  } else {
-    startBroadcastListeners();
-  }
-}
 
 void PacketConsumer::stop() {
   stopDataListener();
@@ -32,14 +21,20 @@ void PacketConsumer::stop() {
 }
 
 void PacketConsumer::update() {
-  if (this->mutex.try_lock()) {
-    std::vector<std::function<void()>> copy = mUpdateFuncs;
-    mUpdateFuncs.clear();
-    this->mutex.unlock();
+  processQueuedThreadOperations();
+}
 
-    for (auto func : copy)
-      func();
-   
+void PacketConsumer::onServiceFound(const std::string& host, int port) {
+  if (dataServerHandle) return; // already listening for data
+
+  stopBroadcastListeners();
+  
+  this->dataServerHandle = startDataListener();
+
+  if (this->dataServerHandle) {
+    this->sendConnectRequest(host, port);  
+  } else {
+    startBroadcastListeners();
   }
 }
 
@@ -53,13 +48,9 @@ bool PacketConsumer::startBroadcastListeners() {
     }
 
     broadcast::add_service_found_callback(handle, this->mServiceId, [this](std::string host, int port){
-      this->mutex.lock();
-      { 
-        this->onMainThread([this, host, port](){
-          this->onServiceFound(host, port);
-        });
-      }
-      this->mutex.unlock();
+      this->onMainThread([this, host, port](){
+        this->onServiceFound(host, port);
+      });
     });
 
     server::start(handle);
@@ -79,24 +70,24 @@ void PacketConsumer::stopBroadcastListeners() {
   mBroadcastServerHandles.clear();
 }
 
-bool PacketConsumer::startDataListener() {
+server::InstanceHandle PacketConsumer::startDataListener() {
   // cout << "PacketConsumer::startDataListener" << endl;
   //
   // Create data receiver
   //
-  this->dataServerHandle = server::create(mPort);
+  auto server = server::create(mPort);
 
-  if (!dataServerHandle) {
+  if (!server) {
     cout << "Failed to create data listener, will not be able to receive data" << endl;
-    return false;
+    return NULL;
   }
 
-  server::add_packet_callback(this->dataServerHandle, [this](const void* data, size_t size){
+  server::add_packet_callback(server, [this](const void* data, size_t size){
     this->onData(data, size);
   });
 
-  server::start(this->dataServerHandle);
-  return true;
+  server::start(server);
+  return server;
 }
 
 void PacketConsumer::stopDataListener() {
@@ -106,6 +97,8 @@ void PacketConsumer::stopDataListener() {
   }
 }
 
-void PacketConsumer::sendConnectRequest(const std::string& host, int port) {
-
+void PacketConsumer::sendConnectRequest(const std::string& serviceHost, int servicePort) {
+  if (!dataServerHandle) return;
+  auto url = server::get_url(dataServerHandle);
+  connect::sendConsumerConnectRequest(mServiceId, serviceHost, servicePort, url);
 }

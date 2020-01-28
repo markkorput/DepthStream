@@ -60,13 +60,36 @@ namespace discover { namespace osc {
       bool startBroadcastListeners();
       void stopBroadcastListeners();
 
-      bool startDataListener();
+      server::InstanceHandle startDataListener();
       void stopDataListener();
 
-      void sendConnectRequest(const std::string& host, int port);
+      void sendConnectRequest(const std::string& serviceHost, int servicePort);
 
       inline void onMainThread(std::function<void()> func) {
+        this->mutex.lock();
         mUpdateFuncs.push_back(func);
+        this->mutex.unlock();
+      }
+
+      inline void processQueuedThreadOperations() { 
+        // anything to do?
+        if (mUpdateFuncs.size() < 1) return;
+
+        // can we get a mutex lock?
+        if (!this->mutex.try_lock()) return;
+
+        // copy funcs vector
+        std::vector<std::function<void()>> funcs = mUpdateFuncs;
+
+        // clear main list
+        mUpdateFuncs.clear();
+
+        // unlock mutex
+        this->mutex.unlock();
+
+        // execute operations
+        for (auto func : funcs)
+          func();
       }
 
     private:
@@ -79,13 +102,7 @@ namespace discover { namespace osc {
       server::InstanceHandle dataServerHandle = NULL;
       std::vector<server::InstanceHandle> mBroadcastServerHandles;
 
-      struct {
-        std::string host = "";
-        int port = 0;
-      } mServiceInfo;
-
       std::mutex mutex;
-
       std::vector<std::function<void()>> mUpdateFuncs;
   };
 }}

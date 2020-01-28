@@ -68,7 +68,7 @@ namespace discover { namespace osc { namespace service {
     private:
       std::string mServiceId;
       int mPort;
-      std::string messageAddr = "/frame";
+      std::string messageAddr = "/data";
       ServiceConnectionListener::Instance* serviceConnectionListener = NULL;
       std::string mConnectionListenerUrl;
       std::vector<osc::ConsumerInfo> mConsumers;

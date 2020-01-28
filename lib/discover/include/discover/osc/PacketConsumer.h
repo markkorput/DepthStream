@@ -24,7 +24,9 @@ namespace discover { namespace osc {
 
       static PacketConsumerRef create(const std::string& serviceId, DataHandler func, bool start=true) {
         auto ref = std::make_shared<PacketConsumer>(serviceId, false);
-        // todo add data handler
+        
+        ref->dataCallback = func;
+
         if (start)
           ref->start();
 
@@ -42,14 +44,20 @@ namespace discover { namespace osc {
       void start();
       void stop();
 
+    protected:
+
+      inline void onData(const void* data, size_t size) {
+        if (this->dataCallback)
+          this->dataCallback(data, size);
+      }
+
     private:
 
       std::string mServiceId;
       std::string messageAddr = "/frame";
       int mPort=4445; // default UDP port on which to receive data
 
-      server::InstanceHandle dataReceiverHandle = NULL;
+      DataHandler dataCallback = nullptr;
+      server::InstanceHandle dataServerHandle = NULL;
   };
-
-
 }}

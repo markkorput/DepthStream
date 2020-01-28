@@ -28,9 +28,18 @@ namespace discover { namespace osc {
     typedef void Instance;
     typedef void* InstanceHandle;
 
-    InstanceHandle create(int port, int maxPortAttempts=10, bool start=false);
+    InstanceHandle create(int port, int maxPortAttempts, bool start=false);
+    inline InstanceHandle create(int port, bool start=false) {
+      return create(port, 25, start);
+    }
+
+    void start(InstanceHandle instance);
     bool destroy(InstanceHandle instance);
     const std::string get_url(InstanceHandle instance);
+
+    typedef std::function<void(const void*, size_t)> DataFunc;
+
+    void add_packet_callback(server::InstanceHandle serverHandle, DataFunc callback);
   }
 
   namespace ServiceConnectionListener {

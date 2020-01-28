@@ -41,5 +41,25 @@ void PacketService::update(uint32_t dtMs) {
 }
 
 void PacketService::submit(const void* data, size_t size) {
-  osc::sendPacket(mConsumers, data, size, this->messageAddr);
+
+  middleware::Packet initialpacket { data, size };
+  middleware::Packet* packet = &initialpacket;
+
+  for(auto& middleware : this->mMiddlewares) {
+    packet = middleware(*packet);
+    if (!packet) return; // middleware aborted
+  }
+
+  cout << "sending packet" << endl;
+  osc::sendPacket(mConsumers, packet->data, packet->size, this->messageAddr);
+}
+
+
+void PacketService::add_middleware(discover::middleware::PacketMiddlewareFunc func) {
+  if (!func) {
+    cout << "PacketService.add_middleware received nullptr func";
+    return;
+  }
+
+  mMiddlewares.push_back(func);
 }

@@ -21,6 +21,10 @@ int main(int argc, char * argv[])
   // new connections on port-number: <port>
   discover::osc::service::PacketService service("depthframes", port);
 
+  service.add_middleware(discover::middleware::throttle_max_fps(1)); // max 30 fps
+  // service.add_middleware(discover::middleware::convert16to32bit()); // perform some conversion?
+  service.add_middleware(discover::middleware::compress()); // deflate data
+
   cout << "Starting player with file " << file << endl;
   depth::Playback playback;
   playback.start(file);

@@ -7,6 +7,7 @@
 #include <math.h>
 
 #include "osc.h"
+#include <discover/middleware.h>
 
 namespace discover { namespace osc { namespace service {
 
@@ -53,6 +54,8 @@ namespace discover { namespace osc { namespace service {
        */
       void submit(const void* data, size_t size);
 
+      void add_middleware(discover::middleware::PacketMiddlewareFunc func);
+
     protected:
         
       /**
@@ -65,12 +68,13 @@ namespace discover { namespace osc { namespace service {
     private:
       std::string mServiceId;
       int mPort;
+      std::string messageAddr = "/frame";
       ServiceConnectionListener::Instance* serviceConnectionListener = NULL;
       std::string mConnectionListenerUrl;
       std::vector<osc::ConsumerInfo> mConsumers;
-      std::string messageAddr = "/frame";
 
-      // broadcast
+      std::vector<discover::middleware::PacketMiddlewareFunc> mMiddlewares;
+      // broadcast timer
       uint32_t mUpdateTime, mNextBroadcastTime;
       uint32_t mBroadcastIntervalMs = 1000;
   };    

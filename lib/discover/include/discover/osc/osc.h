@@ -72,17 +72,35 @@ namespace discover { namespace osc {
 
   namespace packet {
     typedef std::function<void(const void*, size_t)> DataFunc;
+    const std::string DEFAULT_MESSAGE = "/data";
+    void* growBuffer(void* buffer, size_t currentsize, size_t newsize, bool freeOldBuffer);
+    void freeBuffer(void* buffer);
 
-    void addCallback(server::InstanceHandle serverHandle, DataFunc callback, const std::string& messageAddr);
+    class Buffer {
+      public:
+        void* data = NULL;
+        size_t size = 0;
+
+        ~Buffer() {
+          if (data) freeBuffer(data);
+        }
+    };
+
+    void addCallback(server::InstanceHandle serverHandle, DataFunc callback, const std::string& messageAddr, Buffer* buffer);
     
     inline void addCallback(server::InstanceHandle serverHandle, DataFunc callback) {
-      addCallback(serverHandle, callback, "/data");
+      addCallback(serverHandle, callback, DEFAULT_MESSAGE, NULL);
+    }
+
+    inline void addCallback(server::InstanceHandle serverHandle, DataFunc callback, Buffer& buffer) {
+      addCallback(serverHandle, callback, DEFAULT_MESSAGE, &buffer);
     }
 
     void send(const std::vector<connect::ConsumerInfo>& consumers, const void* data, size_t size, const std::string& messageAddr);
 
     inline void send(const std::vector<connect::ConsumerInfo>& consumers, const void* data, size_t size) {
-      send(consumers, data, size, "/data");
+      send(consumers, data, size, DEFAULT_MESSAGE);
     }
   }
+
 }}

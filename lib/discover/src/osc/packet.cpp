@@ -54,7 +54,7 @@ void discover::osc::packet::send(const std::vector<connect::ConsumerInfo>& consu
   }
 }
 
-void discover::osc::packet::addCallback(server::InstanceHandle serverHandle, DataFunc callback, const std::string& messageAddr) {
+void discover::osc::packet::addCallback(server::InstanceHandle serverHandle, DataFunc callback, const std::string& messageAddr, Buffer* buffer) {
   auto st = (lo::ServerThread*)serverHandle;
 
   cout << "registering OSC handler for: " << messageAddr << endl;
@@ -66,52 +66,48 @@ void discover::osc::packet::addCallback(server::InstanceHandle serverHandle, Dat
     callback(data, size);
   });
 
+  if (buffer == NULL) return;
+
   // partial packet message handler
-  st->add_method(messageAddr, "iib", [callback](lo_arg **argv, int) {
-    // cout << "Got partial msg" <<endl;
-    static struct {
-      int offset = 0;
-      int total = 0;
-      void* buffer=NULL;
-    } info; // is this safe?
+  st->add_method(messageAddr, "iib", [callback, buffer](lo_arg **argv, int) {
 
-    int ttl = argv[0]->i;
+    int total = argv[0]->i;
     int offset = argv[1]->i;
-
+    
     void* data = &argv[2]->blob.data;
     size_t size = argv[2]->blob.size;
 
+    // cout << "ttl: " << total << " size: " << size << " offset: " << offset << endl;
 
-    if (info.buffer == NULL) {
-      if (offset == 0 && ttl > 0) {
-          // cout << "starting new partial msg" <<endl;
-          info.buffer = calloc( sizeof(char), ttl);
-          info.offset = 0;
-          info.total = ttl;
-      } else {
-        cout << "invalid partial message; offset=" << offset <<", ttl=" << ttl << endl;
-        return;
-      }
+    if (buffer->data == NULL || buffer->size < total) {
+      buffer->data = growBuffer(buffer->data, buffer->size, total, true);
+      buffer->size = total;
     }
 
-    if (info.buffer == NULL) return;
-
-    if (info.offset != offset || info.total != ttl || info.offset+size > info.total) {
-      // cout << "error during partial msg" <<endl;
-      free(info.buffer);
-      info.buffer = NULL;
+    if (offset + size > buffer->size) {
+      cout << "Partial message too big" << endl;
       return;
     }
 
-    memcpy(info.offset+(char*)info.buffer, data, size);
-    info.offset += size;
-    // cout << "added " << size  << " bytes to partial message" << endl;
+    memcpy(&((char*)buffer->data)[offset], data, size);
 
-    if (info.offset == ttl) {
-      // cout << "finished partial msg" <<endl;
-      callback(info.buffer, ttl);
-      free(info.buffer);
-      info.buffer = NULL;
+    if (offset + size == total) {
+      callback(buffer->data, total);
     }
   });
+}
+
+void* discover::osc::packet::growBuffer(void* buffer, size_t currentsize, size_t newsize, bool freeOldBuffer) {
+  char* tmp = (char *) calloc( sizeof(char), newsize);
+
+	if (tmp && buffer) {
+  	memcpy(tmp, (char*)buffer, currentsize);
+    if (freeOldBuffer) free(buffer);
+  }
+
+  return tmp;
+}
+
+void discover::osc::packet::freeBuffer(void* buffer){
+  free(buffer);
 }

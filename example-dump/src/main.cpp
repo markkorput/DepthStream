@@ -35,7 +35,9 @@ int main(int argc, char * argv[])
   auto inflaterRef = std::make_shared<depth::Inflater>(1280 * 720 * 2 /* initial buffer size, optional */);
   
   auto datahandler = [inflaterRef, &buffer](const void* data, size_t size){
+    cout << "inflating " << size << " bytes" << endl;
     if (inflaterRef->inflate(data, size)) {
+      cout << "write to buf" << endl;
       buffer.write(inflaterRef->getData(), inflaterRef->getSize());
     }
   };

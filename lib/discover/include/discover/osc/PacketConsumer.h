@@ -51,8 +51,7 @@ namespace discover { namespace osc {
     protected:
 
       inline void onData(const void* data, size_t size) {
-        if (this->dataCallback)
-          this->dataCallback(data, size);
+        if (this->dataCallback) this->dataCallback(data, size);
       }
 
       void onServiceFound(const std::string& host, int port);
@@ -98,6 +97,7 @@ namespace discover { namespace osc {
       std::string messageAddr = "/frame";
       int mPort=4445; // default UDP port on which to receive data
 
+      packet::Buffer buffer;
       DataHandler dataCallback = nullptr;
       server::InstanceHandle dataServerHandle = NULL;
       std::vector<server::InstanceHandle> mBroadcastServerHandles;

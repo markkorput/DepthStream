@@ -14,7 +14,6 @@ void PacketConsumer::start() {
   startBroadcastListeners();
 }
 
-
 void PacketConsumer::stop() {
   stopDataListener();
   stopBroadcastListeners();
@@ -83,9 +82,8 @@ server::InstanceHandle PacketConsumer::startDataListener() {
   }
 
   packet::addCallback(server, [this](const void* data, size_t size){
-    cout << "Received packet data" << endl;
     this->onData(data, size);
-  });
+  }, packet::DEFAULT_MESSAGE, &buffer);
 
   server::start(server);
   return server;

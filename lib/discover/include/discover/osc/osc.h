@@ -1,4 +1,5 @@
 #pragma once
+
 #include <stdlib.h>
 #include <string>
 #include <vector>
@@ -34,5 +35,23 @@ namespace discover { namespace osc {
     Instance* start(const std::string& serviceId, int port, ConsumerInfoCallback callback, int maxPortAttempts=10);
     bool stop(Instance* instance);
     const std::string get_url(Instance* instance);
+  }
+
+  typedef struct {
+    std::string host;
+    std::string port;
+  } ConsumerInfo;
+
+  inline void add_consumer(std::vector<ConsumerInfo> consumers, const std::string& host, int port) {
+    ConsumerInfo i;
+    i.host = host;
+    i.port = std::to_string(port);
+    consumers.push_back(i);
+  }
+
+  void sendPacket(const std::vector<ConsumerInfo>& consumers, const void* data, size_t size, const std::string& messageAddr);
+
+  inline void sendPacket(const std::vector<ConsumerInfo>& consumers, const void* data, size_t size) {
+    sendPacket(consumers, data, size, "/data");
   }
 }}

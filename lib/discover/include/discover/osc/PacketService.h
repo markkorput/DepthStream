@@ -6,7 +6,6 @@
 #include <chrono>
 #include <math.h>
 
-#include "PacketSender.h"
 #include "osc.h"
 
 namespace discover { namespace osc { namespace service {
@@ -68,7 +67,8 @@ namespace discover { namespace osc { namespace service {
       int mPort;
       ServiceConnectionListener::Instance* serviceConnectionListener = NULL;
       std::string mConnectionListenerUrl;
-      PacketSenderRef packetSenderRef = nullptr;
+      std::vector<osc::ConsumerInfo> mConsumers;
+      std::string messageAddr = "/frame";
 
       // broadcast
       uint32_t mUpdateTime, mNextBroadcastTime;

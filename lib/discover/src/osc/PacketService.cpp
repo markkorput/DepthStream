@@ -13,12 +13,10 @@ using namespace discover::osc;
 using namespace discover::osc::service;
 
 void PacketService::start() {
-  this->packetSenderRef = PacketSender::create();
-
   this->serviceConnectionListener = ServiceConnectionListener::start("depthframes", mPort,
     // udp connection listener; add consumer to sender
     [this](const std::string& host, int port) {
-      this->packetSenderRef->addUdpConsumer(host,port);
+      osc::add_consumer(mConsumers, host, port);
     });
   mConnectionListenerUrl = ServiceConnectionListener::get_url(this->serviceConnectionListener);
   
@@ -30,10 +28,6 @@ void PacketService::stop() {
   if (serviceConnectionListener) {
     ServiceConnectionListener::stop(serviceConnectionListener);
     serviceConnectionListener = NULL;
-  }
-
-  if (this->packetSenderRef) {
-    this->packetSenderRef = nullptr;
   }
 }
 
@@ -47,6 +41,5 @@ void PacketService::update(uint32_t dtMs) {
 }
 
 void PacketService::submit(const void* data, size_t size) {
-  if (this->packetSenderRef)
-    this->packetSenderRef->submit(data,size);
+  osc::sendPacket(mConsumers, data, size, this->messageAddr);
 }

@@ -41,7 +41,7 @@ void PacketService::update(uint32_t dtMs) {
 }
 
 void PacketService::submit(const void* data, size_t size) {
-
+  cout << "PacketService::submit siez=" << size << endl;
   middleware::Packet initialpacket { data, size };
   middleware::Packet* packet = &initialpacket;
 
@@ -50,7 +50,7 @@ void PacketService::submit(const void* data, size_t size) {
     if (!packet) return; // middleware aborted
   }
 
-  cout << "sending packet" << endl;
+  cout << "sending packet (size=" << packet->size << ")" << endl;
   osc::sendPacket(mConsumers, packet->data, packet->size, this->messageAddr);
 }
 

@@ -22,4 +22,17 @@ namespace discover { namespace osc {
   inline void broadcast_service(const std::string& serviceId, const std::string& url) {
     broadcast_service(serviceId, std::vector<int>{ 4445, 4446, 4447 }, url);
   }
+
+  namespace ServiceConnectionListener {
+    /**
+     * Dummy class for readability; note that we're using void pointers, instead of a
+     * lo::ServerThread pointers, to limit the dependency on the liblo library to osc.cpp
+     */
+    typedef void Instance;
+    typedef std::function<void(const std::string& host, int port)> ConsumerInfoCallback;
+
+    Instance* start(const std::string& serviceId, int port, ConsumerInfoCallback callback, int maxPortAttempts=10);
+    bool stop(Instance* instance);
+    const std::string get_url(Instance* instance);
+  }
 }}

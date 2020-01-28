@@ -15,20 +15,21 @@ using namespace discover::osc::service;
 void PacketService::start() {
   this->packetSenderRef = PacketSender::create();
 
-  this->serviceConnectionListenerRef = ServiceConnectionListener::create("depthframes", mPort,
+  this->serviceConnectionListener = ServiceConnectionListener::start("depthframes", mPort,
     // udp connection listener; add consumer to sender
     [this](const std::string& host, int port) {
       this->packetSenderRef->addUdpConsumer(host,port);
     });
+  mConnectionListenerUrl = ServiceConnectionListener::get_url(this->serviceConnectionListener);
   
   // start broadcast interval
   mUpdateTime = mNextBroadcastTime = getTime();
 }
 
 void PacketService::stop() {
-  if (this->serviceConnectionListenerRef) {
-    this->serviceConnectionListenerRef->stop();
-    this->serviceConnectionListenerRef = nullptr;
+  if (serviceConnectionListener) {
+    ServiceConnectionListener::stop(serviceConnectionListener);
+    serviceConnectionListener = NULL;
   }
 
   if (this->packetSenderRef) {
@@ -39,8 +40,8 @@ void PacketService::stop() {
 void PacketService::update(uint32_t dtMs) {
   mUpdateTime += dtMs;
 
-  if (this->serviceConnectionListenerRef && mUpdateTime >= mNextBroadcastTime) {
-    broadcast_service(mServiceId, this->serviceConnectionListenerRef->getUrl());
+  if (this->serviceConnectionListener && mUpdateTime >= mNextBroadcastTime) {
+    broadcast_service(mServiceId, mConnectionListenerUrl);
     mNextBroadcastTime = getTime() + mBroadcastIntervalMs;
   }
 }

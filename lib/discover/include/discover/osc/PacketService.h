@@ -7,7 +7,7 @@
 #include <math.h>
 
 #include "PacketSender.h"
-#include "ServiceConnectionListener.h"
+#include "osc.h"
 
 namespace discover { namespace osc { namespace service {
 
@@ -66,7 +66,8 @@ namespace discover { namespace osc { namespace service {
     private:
       std::string mServiceId;
       int mPort;
-      ServiceConnectionListenerRef serviceConnectionListenerRef = nullptr;
+      ServiceConnectionListener::Instance* serviceConnectionListener = NULL;
+      std::string mConnectionListenerUrl;
       PacketSenderRef packetSenderRef = nullptr;
 
       // broadcast

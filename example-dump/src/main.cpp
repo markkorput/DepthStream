@@ -10,16 +10,46 @@ const int PORT = 4445;
 
 int main(int argc, char * argv[])
 {
-  auto receiverRef = depth::Receiver::createAndStart(HOST, PORT);
-  auto inflaterRef = std::make_shared<depth::Inflater>(1280 * 720 * 2 /* initial buffer size, optional */);
+  string host = HOST;
+  int port = PORT;
+  bool useConsumer = true;
 
+  if (argc == 3) {
+    host = argv[1];
+    port = stoi(argv[2]);
+    useConsumer = false;
+  } else if (argc == 2) {
+    port = stoi(argv[1]);
+  } else {
+    cout << "USAGE: DepthStreamDump (<host> <port>) | <port>" << endl;
+    return 0;
+  }
+
+
+  depth::ReceiverRef receiverRef = nullptr;
+  
+  depth::Buffer buffer;
+
+  if (useConsumer) {
+  } else {
+    cout << "Creating receiver on: " << host << ":" << port << endl;
+    receiverRef = depth::Receiver::createAndStart(host, port);
+    auto inflaterRef = std::make_shared<depth::Inflater>(1280 * 720 * 2 /* initial buffer size, optional */);
+    // receiverRef->setOutputTo(buffer);
+    receiverRef->setOutput([inflaterRef, &buffer](const void* data, size_t size){
+      if (inflaterRef->inflate(data, size)) {
+        buffer.write(inflaterRef->getData(), inflaterRef->getSize());
+      }
+    });
+  }
 
   bool keepGoing = true;
   KeyHandler::set(&keepGoing);
  
+
   while(keepGoing) {
-    depth::emptyAndInflateBuffer(*receiverRef, [](const void* data, size_t size){
-      cout << "Received frame " << size << "-byte frame" << endl;
+    depth::emptyBuffer(buffer, [](const void* data, size_t size){
+      cout << "Received frame: " << size << " bytes" << endl;
     });
   }
 

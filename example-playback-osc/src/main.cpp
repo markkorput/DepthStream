@@ -11,21 +11,22 @@ using namespace std;
 int main(int argc, char * argv[])
 {
   if (argc < 2) {
-    cout << "USAGE: DepthStreamPlayback <file>" << std::endl;
+    cout << "USAGE: DepthStreamPlayback <file> [<port>]" << std::endl;
     return 1;
   }
 
   string file = argv[1];
   int port = argc >= 3 ? stoi(argv[2]) : 4445;
 
-  depth::compression::CompressBuffer compressbuffer;  
+
   // Start packet-sending service, identifier "depthframes", accepting
   // new connections on port-number: <port>
   discover::osc::service::PacketService service("depthframes", port);
 
   service.add_middleware(discover::middleware::throttle_max_fps(1)); // max 30 fps
-  // service.add_middleware(discover::middleware::convert16to32bit()); // perform some conversion?
+  depth::compression::CompressBuffer compressbuffer;  
   service.add_middleware(depth::compression::middleware::compress(compressbuffer));
+  // service.add_middleware(discover::middleware::convert16to32bit()); // perform some conversion?
 
   cout << "Starting player with file " << file << endl;
   depth::Playback playback;

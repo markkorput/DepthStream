@@ -18,6 +18,7 @@
 #pragma once
 
 #include <stdlib.h>
+#include <iostream>
 #include <vector>
 #include <sys/types.h>
 #ifdef _WIN32
@@ -74,7 +75,9 @@ namespace depth {
     public:
 
       /// The constructor immediately starts the network server thread
-      UdpSocketTransmitter(int port=4445) : port(port) {}
+      UdpSocketTransmitter(int port=4445) : port(port) {
+          std::cout << "Creae UdpSocketTransmitter on port: " << port << std::endl;
+      }
 
       /// Transmits a the given frame-data if the network-server has a connected client
       bool transmit(const void* data, size_t size) override;

@@ -1,0 +1,12 @@
+sequenceDiagram
+  loop forever
+    Transmitter->>Receiver: Broadcast Presence
+  end
+
+  Receiver->>Transmitter: Connect
+
+  loop while connected
+    Transmitter->>Receiver: Data
+  end
+
+  Receiver->>Transmitter: Disconnect

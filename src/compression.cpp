@@ -215,3 +215,16 @@ size_t depth::compression::inflate(const void* compressedData, size_t compressed
   // return decompressed;
   return strm.total_out;
 }
+
+discover::middleware::PacketMiddlewareFunc depth::compression::middleware::compress(CompressBuffer& buffer) {
+  return [&buffer](discover::middleware::Packet& packet) -> discover::middleware::Packet* {
+    // void* target = NULL;
+    // size_t size = 0;
+    size_t delflatedSize = depth::compression::deflate(packet.data, packet.size, buffer.data, buffer.size);
+
+    if (delflatedSize == 0) return NULL;
+    packet.data = buffer.data;
+    packet.size = buffer.size;
+    return &packet;
+  };
+}

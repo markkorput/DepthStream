@@ -1,51 +1,49 @@
 # this file is inspired by https://github.com/pabloariasal/modern-cmake-sample/blob/master/libjsonutils/CMakeLists.txt
 cmake_minimum_required(VERSION 3.10)
-project(DepthStream VERSION 0.1.1)
+project(Discover VERSION 0.0.1)
 
 ##############################################
 # Declare dependencies
 
-find_package(ZLIB)
+# find_package(ZLIB)
 find_package (Threads)
 find_package (liblo)
-include (${CMAKE_CURRENT_LIST_DIR}/lib/discover/CMakeLists.txt)
+include (${CMAKE_CURRENT_LIST_DIR}/cmake/Findliblo.cmake)
 
 ##############################################
 # Create target and set properties
 
 # source files
-get_filename_component( DepthStream_src "${CMAKE_CURRENT_LIST_DIR}/src" ABSOLUTE )
-FILE(GLOB DepthStream_sources ${DepthStream_src}/*.cpp)
+get_filename_component( Discover_src "${CMAKE_CURRENT_LIST_DIR}/src" ABSOLUTE )
+FILE(GLOB Discover_sources ${Discover_src}/*.cpp ${Discover_src}/*/*.cpp)
 
-add_library(DepthStream ${DepthStream_sources})
+add_library(Discover ${Discover_sources})
 
 #Add an alias so that library can be used inside the build tree, e.g. when testing
-add_library(DepthStream::DepthStream ALIAS DepthStream)
+add_library(Discover::Discover ALIAS Discover)
 
-target_include_directories(DepthStream
+target_include_directories(Discover
     PUBLIC 
-        $<INSTALL_INTERFACE:include>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>
+      $<INSTALL_INTERFACE:include>
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>
     PRIVATE
       ${LIBLO_INCLUDE_DIRS}
-     #${CMAKE_CURRENT_LIST_DIR}/src
+      #${CMAKE_CURRENT_LIST_DIR}/src
 )
 
 # specify the C++ standard
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-target_compile_features(DepthStream PRIVATE cxx_auto_type)
+target_compile_features(Discover PRIVATE cxx_auto_type)
 
-target_link_libraries(DepthStream
+target_link_libraries(Discover
     # PUBLIC
     #     Boost::boost RapidJSON::RapidJSON
     # PRIVATE
     #     Boost::regex
-    PUBLIC
-      Discover::Discover
     PRIVATE
-      ${ZLIB_LIBRARIES}
+      # ${ZLIB_LIBRARIES}
       ${CMAKE_THREAD_LIBS_INIT}
       ${LIBLO_LIBRARIES}
 )
@@ -55,24 +53,24 @@ target_link_libraries(DepthStream
 # Installation instructions
 
 include(GNUInstallDirs)
-set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/DepthStream)
-install(TARGETS DepthStream
-    EXPORT depthstream-targets
+set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/Discover)
+install(TARGETS Discover
+    EXPORT discover-targets
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
 #This is required so that the exported target has the name JSONUtils and not jsonutils
-set_target_properties(DepthStream PROPERTIES EXPORT_NAME DepthStream)
+set_target_properties(Discover PROPERTIES EXPORT_NAME Discover)
 
 install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 #Export the targets to a script
-install(EXPORT depthstream-targets
+install(EXPORT discover-targets
   FILE
-    DepthStreamTargets.cmake
+    DiscoverTargets.cmake
   NAMESPACE
-    DepthStream::
+    Discover::
   DESTINATION
     ${INSTALL_CONFIGDIR}
 )
@@ -80,21 +78,21 @@ install(EXPORT depthstream-targets
 #Create a ConfigVersion.cmake file
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
-    ${CMAKE_CURRENT_BINARY_DIR}/DepthStreamConfigVersion.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/DiscoverConfigVersion.cmake
     VERSION ${PROJECT_VERSION}
     COMPATIBILITY AnyNewerVersion
 )
 
-configure_package_config_file(${CMAKE_CURRENT_LIST_DIR}/cmake/DepthStreamConfig.cmake.in
-    ${CMAKE_CURRENT_BINARY_DIR}/DepthStreamConfig.cmake
+configure_package_config_file(${CMAKE_CURRENT_LIST_DIR}/cmake/DiscoverConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/DiscoverConfig.cmake
     INSTALL_DESTINATION ${INSTALL_CONFIGDIR}
 )
 
 #Install the config, configversion and custom find modules
 install(FILES
     # ${CMAKE_CURRENT_LIST_DIR}/cmake/FindRapidJSON.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}/DepthStreamConfig.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}/DepthStreamConfigVersion.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/DiscoverConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/DiscoverConfigVersion.cmake
     DESTINATION ${INSTALL_CONFIGDIR}
 )
 
@@ -104,10 +102,10 @@ install(FILES
 #     ${CMAKE_CURRENT_BINARY_DIR}/FindRapidJSON.cmake
 #     COPYONLY)
 
-export(EXPORT depthstream-targets FILE ${CMAKE_CURRENT_BINARY_DIR}/DepthStreamTargets.cmake NAMESPACE DepthStream::)
+export(EXPORT discover-targets FILE ${CMAKE_CURRENT_BINARY_DIR}/DiscoverTargets.cmake NAMESPACE Discover::)
 
 #Register package in user's package registry
-export(PACKAGE DepthStream)
+export(PACKAGE Discover)
 
 # add_subdirectory(test)
 

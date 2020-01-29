@@ -6,6 +6,7 @@ from optparse import OptionParser
 
 from .discover.socket import SocketClientThread, PacketStreamReceiver
 from .discover.compress import compress, decompress
+from middleware.Step import Step
 from .Buffer import Buffer
 logger = logging.getLogger(__name__)
 
@@ -29,20 +30,30 @@ if __name__ == '__main__':
   # our socket thread 
   ct = SocketClientThread(opts.host, opts.port, connectionFunc=receiver.receive)
 
-  def onConnect(s): logger.info('Connected')
-  def onDisconnect(s): logger.info('Disconnected')
-
+  def onConnect(socket): logger.info('Connected')
+  def onDisconnect(socket): logger.info('Disconnected')
   ct.connectEvent += onConnect
   ct.disconnectEvent += onDisconnect
 
+
+  def unzip(data, size):
+    decomp = decompress(data, size)
+    return (decomp, len(decomp)) if decomp else None
+
+  def logCompression(originalPacket):
+    def logC(data, size):
+      logger.info('Got packet, size (compressed/decompressed): {}/{}'.format(originalPacket[1], size))
+    return logC 
+
+  def logFailure(data, size):
+    logger.warn('Failed to decompress packet of {} bytes'.format(size))
+
   try:
     while True:
+
       frame = buffer.read()
       if frame:
-        # logging.info('Got frame')
-        data, size = frame
-        decomp = decompress(data, size)
-        logger.info('Got packet, size (compressed/decompressed): {}/{}'.format(size, len(decomp)))
+        Step(*frame).then(unzip, onAbort=logFailure).then(logCompression(frame))
 
       sleep(0.3)
   except KeyboardInterrupt:

@@ -262,11 +262,16 @@ class PacketService:
     body = memoryview(buffer)[0:size]
 
     for client in clients:
-      socket, addr = client
-      socket.sendall(header)
-      socket.sendall(body)
+      clientsock, addr = client
+      try:
+        clientsock.sendall(header)
+        clientsock.sendall(body)
+      except OSError:
+        self.onDisconnect(clientsock, addr)
 
   def onConnection(self, socket, addr):
     self.clients.append((socket,addr))
 
-
+  def onDisconnect(self, socket, addr):
+    self.clients = list(filter(lambda c: c[0] != socket, self.clients))
+    logger.debug('Client disconnected, {} connected clients left'.format(len(self.clients)))

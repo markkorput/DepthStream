@@ -1,20 +1,70 @@
 #!/usr/bin/python
 import logging, sys
 from threading import Thread
-from time import sleep
+from time import sleep, time
 from optparse import OptionParser
 
 from .discover.socket import PacketService
 from .discover.packet.Player import Player
 from .Buffer import Buffer
+from middleware.Step import Step
 
 logger = logging.getLogger(__name__)
 
+
+# class Step:
+#   def __init__(self, *args):
+#     self.args = args
   
+#   def step(self, func):
+#     if not self.data: return self
+
+#     res = func(*self.args)
+
+#     if type(res) == type(True):
+#       if not res:
+#         self.args = None
+#     else:
+#       self.args = res
+
+#     return self
+  
+#   @classmethod
+#   def start_with(self, buffer, size):
+#     return Step((buffer,size))
+
+#   @classmethod
+#   def to_single_arg(cls, func):
+#     def f(packet):
+#       return func(packet[0], packet[1])
+#     return f
+
+class Timer:
+  def __init__(self, fps):
+    self.fps = fps
+    self.interval = 1.0 / self.fps
+    self.nextTime = time()
+  
+  def check(self):
+    t = time()
+    if t < self.nextTime:
+      return False
+    self.nextTime = t + self.interval
+    return True
+  
+class Throttle:
+  def __init__(self, fps):
+    self.timer = Timer(fps)
+  
+  def process(self, data, size):
+    return self.timer.check()
+
+  __call__ = process
 
 if __name__ == '__main__':
   parser = OptionParser()
   parser.add_option('-p', '--port', dest="port", default=4445, type='int')
+  parser.add_option('--fps', dest="fps", default=25.0, type='float')
   parser.add_option('-f', '--file', dest="file", default=None)
   parser.add_option('-v', '--verbose', dest="verbose", action='store_true', default=False)
 
@@ -31,17 +81,18 @@ if __name__ == '__main__':
   buffer = Buffer()
   player = Player(filepath, start=True)
 
+  throttle = Throttle(fps=opts.fps)
   service = PacketService("packetframes", opts.port)
 
   try:
     while True:
+      
       frame = player.update()
-
       if frame:
         # logging.info('Got frame')
         data, size = frame
-        # logger.info('Got frame of {} bytes'.format(size))
-        service.submit(data, size)
+
+        Step(data, size).then(throttle).then(service.submit)
 
       sleep(0.1)
   except KeyboardInterrupt:

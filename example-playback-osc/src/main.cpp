@@ -37,8 +37,8 @@ int main(int argc, char * argv[])
     return true;
   });
 
-  auto log = [&service](const char* prefix) {
-    return discover::middleware::packet::to_step([prefix, &service](const void* data, size_t size) -> bool {
+  auto log = [](const char* prefix) {
+    return discover::middleware::packet::to_step([prefix](const void* data, size_t size) -> bool {
       cout << prefix << " " << size << " bytes" << endl;
       return true;
     });

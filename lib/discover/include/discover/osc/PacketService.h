@@ -9,7 +9,7 @@
 #include "osc.h"
 #include <discover/middleware.h>
 
-namespace discover { namespace osc { namespace service {
+namespace discover { namespace osc {
 
   class PacketService {
     public:
@@ -52,9 +52,9 @@ namespace discover { namespace osc { namespace service {
        * Uses the internal PacketSender instance (if initialized by a call
        * to this service's stat method.) to send out the data to connected consumers.
        */
-      void submit(const void* data, size_t size);
-
-      void add_middleware(discover::middleware::PacketMiddlewareFunc func);
+      inline void submit(const void* data, size_t size) {
+        osc::packet::send(mConsumers, data, size);
+      }
 
     protected:
         
@@ -72,10 +72,10 @@ namespace discover { namespace osc { namespace service {
       std::string mConnectionListenerUrl;
       std::vector<connect::ConsumerInfo> mConsumers;
 
-      std::vector<discover::middleware::PacketMiddlewareFunc> mMiddlewares;
+      std::vector<discover::middleware::packet::ConvertFunc> mMiddlewares;
       // broadcast timer
       uint32_t mUpdateTime, mNextBroadcastTime;
       uint32_t mBroadcastIntervalMs = 1000;
   };    
-} } } // namespace discover::osc::service
+} } // namespace discover::osc
 

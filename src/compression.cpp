@@ -216,8 +216,9 @@ size_t depth::compression::inflate(const void* compressedData, size_t compressed
   return strm.total_out;
 }
 
-discover::middleware::PacketMiddlewareFunc depth::compression::middleware::compress(CompressBuffer& buffer) {
-  return [&buffer](discover::middleware::Packet& packet) -> discover::middleware::Packet* {
+discover::middleware::packet::ConvertFunc depth::compression::middleware::compress(CompressBuffer& buffer) {
+  return [&buffer](discover::middleware::packet::Packet& packet) -> discover::middleware::packet::Packet* {
+    // cout << "compress " << packet.size << " bytes" << endl;
     // void* target = NULL;
     // size_t size = 0;
     size_t delflatedSize = depth::compression::deflate(packet.data, packet.size, buffer.data, buffer.size);
@@ -225,6 +226,20 @@ discover::middleware::PacketMiddlewareFunc depth::compression::middleware::compr
     if (delflatedSize == 0) return NULL;
     packet.data = buffer.data;
     packet.size = buffer.size;
+    return &packet;
+  };
+}
+
+discover::middleware::packet::ConvertFunc depth::compression::middleware::compress() {
+  std::shared_ptr<depth::compression::CompressBuffer> compressbufferRef;  
+
+  return [compressbufferRef](discover::middleware::packet::Packet& packet) -> discover::middleware::packet::Packet* {
+    // cout << "compress " << packet.size << " bytes" << endl;
+    size_t delflatedSize = depth::compression::deflate(packet.data, packet.size, compressbufferRef->data, compressbufferRef->size);
+
+    if (delflatedSize == 0) return NULL;
+    packet.data = compressbufferRef->data;
+    packet.size = compressbufferRef->size;
     return &packet;
   };
 }

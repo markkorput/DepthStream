@@ -295,6 +295,16 @@ def create_processor(data):
 
     return enhance(func)
 
+  if typ == 'bgsub':
+    algo = select(data['algo'] if 'algo' in data else 'MOG2', ['MOG2', 'KNN'])
+    showmask = data['showmask'] if 'showmask' in data else False
+    backSub =  cv2.createBackgroundSubtractorKNN() if algo == 'KNN' else  cv2.createBackgroundSubtractorMOG2()
+    def func(f, opts={}):
+      fgMask = backSub.apply(f)
+      return fgMask if showmask else f*fgMask
+
+    return enhance(func)
+
 def create_processor_from_data(data):
   '''
   Takes parsed (json) data which should a contain a 'processors' key with an ordered list/array of processor configurations.
@@ -399,7 +409,9 @@ def create_controlled_processor(winid, idx, data):
   if typ=='add':
     ctrl('factor', max=1000, initialValue=1, valueProc=lambda x: (x/100.0)-100.0)
 
-
+  if typ=='bgsub':
+    ctrl('algo', values=['MOG2', 'KNN'])
+    ctrl('showmask', values=[False,True])
 
   #   addParamTrackbar(winid, params, 'blur-x', values=[0,1,3,5,7,9,11,13,15,17,19])
   #   addParamTrackbar(winid, params, 'blur-y', values=[0,1,3,5,7,9,11,13,15,17,19])

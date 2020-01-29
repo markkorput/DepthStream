@@ -1,5 +1,12 @@
 {
   "processors": [
+    {"type": "threshold", "value":150, "method":2,"enabled":false},
+    {"type": "bgsub", "algo":"MOG2", "algo_":"KNN", "showmask":false},
+    {"type": "dilate", "kernel":3, "iterations":3,"enabled":false},
+    {"type": "threshold", "value":150, "method":2,"enabled":false}
+  ],
+
+  "disabled": [
     {"type": "grayscale_DISABLE", "verbose":false, "enabled":true},
     {"type": "invert", "verbose": false, "enabled":false},
     {"type": "gaussianblur", "x":1, "y":0, "enabled":false},

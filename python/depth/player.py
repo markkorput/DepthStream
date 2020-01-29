@@ -7,7 +7,7 @@ from discover.socket import PacketService
 from discover.packet.Player import Player
 from discover.packet.Buffer import Buffer
 from middleware import Step
-from .steps import unzip, log_unzip, log_unzip_failure, show, create_throttle, create_throttle, load_grayscale_image, convert_16u_to_8u
+from .steps import unzip, log_unzip, log_unzip_failure, show, create_throttle, create_throttle, load_grayscale_image, convert_16u_to_8u, create_16u_to_8u_converter
 
 
 logger = logging.getLogger(__name__)
@@ -39,7 +39,8 @@ if __name__ == '__main__':
   service = None if opts.show else PacketService("packetframes", opts.port)
 
   processor = None
-
+  # bit_converter = convert_16u_to_8u
+  bit_converter = create_16u_to_8u_converter(0, 1000)
   if opts.processor:
     from .processor import create_controlled_processor_from_json_file #, create_processor_from_json_file
     p = create_controlled_processor_from_json_file(opts.processor, winid='ctrl')
@@ -56,8 +57,8 @@ if __name__ == '__main__':
       unzip, # else log_unzip_failure
       # log_unzip,
       load_grayscale_image,
-      convert_16u_to_8u,
-      processor, # ony loaded is --processor arg specified a valid file
+      # bit_converter,
+      # processor, # ony loaded if --processor arg specified a valid file
       show
     ])
 

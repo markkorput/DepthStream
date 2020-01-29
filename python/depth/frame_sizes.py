@@ -25,7 +25,7 @@ def to_frame(data, size):
   return None
 
 
-def convert_16u_to_8u(image):
+def convert_16u_to_8u(image, min=1000, max=10000):
   def display(image, display_min, display_max): # copied from Bi Rico
     # Here I set copy=True in order to ensure the original image is not
     # modified. If you don't mind modifying the original image, you can
@@ -42,5 +42,5 @@ def convert_16u_to_8u(image):
     lut = display(lut, display_min, display_max)
     return np.take(lut, image)
   
-  converted = display(image, 1000, 10000)
+  converted = display(image, min, max)
   return converted

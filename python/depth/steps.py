@@ -25,6 +25,12 @@ def convert_16u_to_8u(data, size):
   data = c16u_to_8u(data)
   return (data, size)
 
+def create_16u_to_8u_converter(min, max):
+  def func(data, size):
+    data = c16u_to_8u(data, min=min, max=max)
+    return (data,size)
+  return func
+
 def show(frame, size):
   cv2.imshow('playback {}'.format(frame.shape), frame)
   return True

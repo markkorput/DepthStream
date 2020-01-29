@@ -1,14 +1,17 @@
 #!/usr/bin/python
-import logging, sys
+import logging, sys, cv2
 from threading import Thread
 from time import sleep, time
 from optparse import OptionParser
+import numpy as np
 
 from discover.socket import PacketService
 from discover.packet.Player import Player
+from discover.compress import decompress
 from middleware.Step import Step
 
 from .Buffer import Buffer
+from .constants import *
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +42,7 @@ if __name__ == '__main__':
   parser.add_option('-p', '--port', dest="port", default=4445, type='int')
   parser.add_option('--fps', dest="fps", default=25.0, type='float')
   parser.add_option('-f', '--file', dest="file", default=None)
+  parser.add_option('-s', '--show', dest="show", action='store_true', default=False)
   parser.add_option('-v', '--verbose', dest="verbose", action='store_true', default=False)
 
   parser.add_option('--verbosity', dest="verbosity", action='store_true', default='info')
@@ -54,26 +58,73 @@ if __name__ == '__main__':
   buffer = Buffer()
   player = Player(filepath, start=True)
 
+  
   throttle = Throttle(fps=opts.fps)
-  service = PacketService("packetframes", opts.port)
+
+  service = None if opts.show else PacketService("packetframes", opts.port)
+
+  def unzip(data, size):
+    decomp = decompress(data, size)
+    return (decomp, len(decomp)) if decomp else None
+
+  def logUnzip(data, size):
+    logger.info('Unzipped frame into {} bytes'.format(size))
+    return True
+
+  def logUnzipFailure(data, size):
+    logger.warn('Failed to decompress packet of {} bytes'.format(size))
+
+  def load_grayscale_image(data, size):
+      if size == FRAME_SIZE_1280x720x16BIT:
+        frame = np.frombuffer(data, dtype='<u2')
+        frame = (frame - 500 / (3500-500))
+        frame = frame.reshape(720, 1280)
+        return (frame, size)
+        
+      if size == FRAME_SIZE_640x480x16BIT:
+        frame = np.frombuffer(data, dtype='<u2')
+        frame = 1.0 - frame / 4000
+        frame = frame.reshape(480, 640)
+        return (frame, size)
+
+      logger.warn('Unsupported frame size: {} bytes'.format(size))
+      return None
+  
+  def show(frame, size):
+    cv2.imshow('playback {}'.format(frame.shape), frame)
+
+  def show_frame(data, size):
+    Step(data, size).sequence([
+      unzip,
+      # logUnzip,
+      load_grayscale_image,
+      show
+    ])
 
   try:
     while True:
       
       frame = player.update()
       if frame:
-        # logging.info('Got frame')
         data, size = frame
 
-        Step(data, size).then(throttle).then(service.submit)
+        # Step(data, size).then(throttle).then(unzip, onAbort=logUnzipFailure).then(logUnzip).then(show_frame)
+        Step(data, size).sequence([
+          throttle,
+          show_frame if opts.show else None,
+          service.submit if service else None])
+
+      key = cv2.waitKey(20) & 0xFF
+      if key == 27 or key == ord('q'): # escape or Q
+        break
 
       sleep(0.1)
   except KeyboardInterrupt:
     print("Received Ctrl+C... initiating exit")
 
   player.stop()
-  service.stop()
-  # ct.stop()    
+  if service:
+    service.stop()
 
   sleep(.1)
   

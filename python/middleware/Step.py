@@ -4,7 +4,7 @@ class Step:
     self.args = args
   
   def then(self, func, onAbort=None):
-    if not self.args: return self
+    if type(self.args) == type(None): return self
 
     old = self.args
     res = func(*old)
@@ -15,10 +15,16 @@ class Step:
     else:
       self.args = res
 
-    if not self.args and onAbort:
+    if type(self.args) == type(None) and onAbort:
       onAbort(*old)
 
     return self
+
+  def sequence(self, steps):
+    cur = self
+    for action in steps:
+      if action != None:
+        cur = cur.then(action)
 
   @classmethod
   def explode(cls, args):

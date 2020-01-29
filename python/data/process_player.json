@@ -1,0 +1,12 @@
+{
+  "processors": [
+    {"type": "grayscale_DISABLE", "verbose":false, "enabled":true},
+    {"type": "invert", "verbose": false, "enabled":false},
+    {"type": "gaussianblur", "x":1, "y":0, "enabled":false},
+    {"type": "diff_TODO", "x":1, "y":0, "enabled":false},
+    {"type": "threshold", "value":150, "method":2,"enabled":false},
+    {"type": "dilate", "kernel":3, "iterations":3,"enabled":false},
+    {"type": "contours", "mode":0, "method":0,"drawboxes":false, "linethickness":-1,"enabled":false},
+    {"type": "canny", "threshold1":100, "threshold2":200}
+  ]
+}

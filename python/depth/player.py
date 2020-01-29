@@ -7,7 +7,8 @@ from discover.socket import PacketService
 from discover.packet.Player import Player
 from discover.packet.Buffer import Buffer
 from middleware import Step
-from .steps import unzip, log_unzip, log_unzip_failure, show, create_throttle, create_throttle, load_grayscale_image
+from .steps import unzip, log_unzip, log_unzip_failure, show, create_throttle, create_throttle, load_grayscale_image, convert_16u_to_8u
+
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,7 @@ if __name__ == '__main__':
   parser.add_option('--fps', dest="fps", default=25.0, type='float')
   parser.add_option('-f', '--file', dest="file", default=None)
   parser.add_option('-s', '--show', dest="show", action='store_true', default=False)
+  parser.add_option('--processor', dest="processor", default='data/process_player.json')
   parser.add_option('-v', '--verbose', dest="verbose", action='store_true', default=False)
 
   parser.add_option('--verbosity', dest="verbosity", action='store_true', default='info')
@@ -36,11 +38,26 @@ if __name__ == '__main__':
 
   service = None if opts.show else PacketService("packetframes", opts.port)
 
+  processor = None
+
+  if opts.processor:
+    from .processor import create_controlled_processor_from_json_file #, create_processor_from_json_file
+    p = create_controlled_processor_from_json_file(opts.processor, winid='ctrl')
+
+    def func(frame,size):
+      f = p(frame)
+      return (f,size)
+
+    processor = func
+
+
   def show_frame(data, size):
     Step(data, size).sequence([
       unzip, # else log_unzip_failure
       # log_unzip,
       load_grayscale_image,
+      convert_16u_to_8u,
+      processor, # ony loaded is --processor arg specified a valid file
       show
     ])
 

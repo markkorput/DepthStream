@@ -20,10 +20,6 @@ int main(int argc, char * argv[])
   int port = argc >= 3 ? stoi(argv[2]) : 4445;
 
 
-  // Start packet-sending service, identifier "depthframes", accepting
-  // new connections on port-number: <port>
-  discover::osc::PacketService service("depthframes", port);
-
   // create throttle middleware step; only allows 1 packet per second
   auto throttle = discover::middleware::packet::throttle_max_fps(1);
 
@@ -31,7 +27,11 @@ int main(int argc, char * argv[])
   depth::compression::CompressBuffer buf;
   auto compress = depth::compression::middleware::compress(buf);
 
-  // send step; submits data to the service
+  // Start packet-sending service, identifier "depthframes", accepting
+  // new connections on port-number: <port>
+  discover::osc::PacketService service("depthframes", port);
+
+  // send step; submits data a network service
   auto send = discover::middleware::packet::to_step([&service](const void* data, size_t size) -> bool {
     service.submit(data, size);
     return true;

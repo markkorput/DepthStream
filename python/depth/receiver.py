@@ -1,13 +1,13 @@
 #!/usr/bin/python
-import logging, sys
+import logging, sys, cv2
 from threading import Thread
 from time import sleep
 from optparse import OptionParser
 
 from discover.socket import SocketClientThread, PacketStreamReceiver
-from discover.compress import compress, decompress
 from discover.packet.Buffer import Buffer
-from middleware.Step import Step
+from middleware import Step
+from .steps import unzip, log_unzip, log_unzip_failure, load_grayscale_image, show
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +15,7 @@ if __name__ == '__main__':
   parser = OptionParser()
   parser.add_option('-p', '--port', dest="port", default=4445, type='int')
   parser.add_option('--host', dest="host", default='127.0.0.1')
+  parser.add_option('-s', '--show', dest="show", action='store_true', default=False)
   parser.add_option('-v', '--verbose', dest="verbose", action='store_true', default=False)
   parser.add_option('--verbosity', dest="verbosity", action='store_true', default='info')
 
@@ -36,25 +37,23 @@ if __name__ == '__main__':
   ct.connectEvent += onConnect
   ct.disconnectEvent += onDisconnect
 
-
-  def unzip(data, size):
-    decomp = decompress(data, size)
-    return (decomp, len(decomp)) if decomp else None
-
-  def logCompression(originalPacket):
-    def logC(data, size):
-      logger.info('Got packet, size (compressed/decompressed): {}/{}'.format(originalPacket[1], size))
-    return logC 
-
-  def logFailure(data, size):
-    logger.warn('Failed to decompress packet of {} bytes'.format(size))
-
+  keepGoing = True
   try:
-    while True:
+    while keepGoing:
 
       frame = buffer.read()
       if frame:
-        Step(*frame).then(unzip, onAbort=logFailure).then(logCompression(frame))
+        res = Step(*frame).then(unzip, onAbort=log_unzip_failure).then(log_unzip)
+
+        if opts.show:
+          res.sequence([
+            load_grayscale_image,
+            show
+          ])
+
+        key = cv2.waitKey(20) & 0xFF
+        if key == 27 or key == ord('q'): # escape or Q
+          keepGoing = False
 
       sleep(0.3)
   except KeyboardInterrupt:

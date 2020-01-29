@@ -1,18 +1,13 @@
 #!/usr/bin/python
-import logging, sys, cv2
-from threading import Thread
-from time import sleep, time
+import logging, cv2
+from time import sleep
 from optparse import OptionParser
-import numpy as np
 
 from discover.socket import PacketService
 from discover.packet.Player import Player
 from discover.packet.Buffer import Buffer
-from discover.packet.Throttle import Throttle
-from discover.compress import decompress
-
-from middleware.Step import Step
-from .frame_sizes import to_frame
+from middleware import Step
+from .steps import unzip, log_unzip, log_unzip_failure, show, create_throttle, create_throttle, load_grayscale_image
 
 logger = logging.getLogger(__name__)
 
@@ -37,33 +32,14 @@ if __name__ == '__main__':
   buffer = Buffer()
   player = Player(filepath, start=True)
 
-  throttle = Throttle(fps=opts.fps)
+  throttle = create_throttle(opts.fps)
 
   service = None if opts.show else PacketService("packetframes", opts.port)
 
-  def unzip(data, size):
-    decomp = decompress(data, size)
-    return (decomp, len(decomp)) if decomp else None
-
-  def logUnzip(data, size):
-    logger.info('Unzipped frame into {} bytes'.format(size))
-    return True
-
-  def logUnzipFailure(data, size):
-    logger.warn('Failed to decompress packet of {} bytes'.format(size))
-
-  def load_grayscale_image(data, size):
-    frame = to_frame(data, size)
-    return (frame, size)
-
-  def show(frame, size):
-    cv2.imshow('playback {}'.format(frame.shape), frame)
-    return False
-
   def show_frame(data, size):
     Step(data, size).sequence([
-      unzip,
-      # logUnzip,
+      unzip, # else log_unzip_failure
+      # log_unzip,
       load_grayscale_image,
       show
     ])

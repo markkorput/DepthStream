@@ -2,9 +2,16 @@
 #include <string>
 #include <iostream>
 #include "key_handler.h"
-#include <DepthStream/DepthStream.h>
-#include <discover/all.h>
+
+#include <DepthStream/Playback.h>
 #include <DepthStream/compression.h>
+
+
+#include <discover/all.h>
+#include <discover/socket.h>
+#include <discover/socket/PacketService.h>
+
+
 
 using namespace std;
 
@@ -23,12 +30,12 @@ int main(int argc, char * argv[])
   auto throttle = discover::middleware::packet::throttle_max_fps(1);
 
   // compression step; compresses data
-  // depth::compression::CompressBuffer buf;
-  // auto compress = depth::compression::middleware::compress(buf);
+  depth::compression::CompressBuffer buf;
+  auto compress = depth::compression::middleware::compress(buf);
 
   // Start packet-sending service, identifier "depthframes", accepting
   // new connections on port-number: <port>
-  discover::osc::PacketService service("depthframes", port);
+  discover::socket::PacketService service("depthframes", port);
 
   // send step; submits data a network service
   auto send = discover::middleware::packet::to_step([&service](const void* data, size_t size) -> bool {
@@ -56,7 +63,7 @@ int main(int argc, char * argv[])
     if (playback.update()) {
       discover::middleware::start(playback.getRef()->data(), playback.getRef()->size())
         | throttle
-        // | compress
+        | compress
         | send
         | log("submitted")
         ;

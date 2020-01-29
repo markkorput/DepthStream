@@ -1,0 +1,4 @@
+#opencv-python==4.0.0.21
+opencv-contrib-python==4.1.1.26 # http://timosam.com/python_opencv_depthimage
+evento>=1.0.1
+python-osc>=1.7.2

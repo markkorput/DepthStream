@@ -6,6 +6,10 @@ from evento import Event
 
 logger = logging.getLogger(__name__)
 
+#
+# Client
+#
+
 class SocketClientThread:
   def __init__(self, host='127.0.0.1', port=4445, start=True, maxBytes=1024, connectionFunc=None):
     self.port = port
@@ -14,6 +18,7 @@ class SocketClientThread:
     self.maxBytes = maxBytes
     self.delay = 0.8
     self.connectionFunc = connectionFunc
+    self.threadHandle = None
 
     self.connectEvent = Event()
     self.disconnectEvent = Event()
@@ -53,8 +58,13 @@ class SocketClientThread:
     self.threadHandle = Thread(target=threadFunc)
     self.threadHandle.start()
 
-  def stop(self):
+  def stop(self, wait=True):
     self.running = False
+
+    if self.threadHandle and wait:
+      self.threadHandle.join()
+
+    self.threadHandle = None
 
 class PacketStreamReceiver:
   def __init__(self, handler):
@@ -126,116 +136,137 @@ class PacketStreamReceiver:
   def stop(self):
     self.stoppedByOwner = True
 
+#
+# Service
+#
+
+class ServerThread:
+  def __init__(self, port=4445, start=True, connectionHandler=None, maxConnections=1):
+    self.port = port
+    self.connectionHandler = connectionHandler
+    self.maxConnections = maxConnections
+
+    self.threadHandle = None
+    self.running = False
+
+    if start:
+      self.start()
+
+  def start(self):
+    def threadFunc():
+      s = None
+      while self.running:
+        if not s:
+          s = ServerThread.createSocket(self.port, self.maxConnections)
+
+        if not s:
+          logger.warning('Could not create service socket on port: {}'.format(self.port))
+          sleep(0.5)
+          continue
+
+        clientsocket = None
+        addr = None
+
+        try:
+          clientsocket, addr = s.accept()
+        except BlockingIOError as err:
+          logging.warn('Accept error: {}'.format(err.errno))
+          sleep(0.5)
+
+        if clientsocket and addr and self.connectionHandler:
+          self.connectionHandler(clientsocket, addr)
+
+        # with con
+        #   if not data:
+        #     #  self.connectionEvent(conn, addr)
+
+        #     print('Connected by', addr)
+        #     self.connectionEvent(conn, addr)
+        #     # while True:
+        #     #     data = conn.recv(1024)
+        #     #     if not data:
+        #     #         break
+        #         # conn.sendall(data)
+      if s:
+        s.close()
 
 
+    self.running = True
+    self.threadHandle = Thread(target=threadFunc)
+    self.threadHandle.start()
 
-# def createSocket(portNum):
-#   logger.debug('createSocket({})'.format(portNum))
+  def stop(self, wait=True):
+    self.running = False
 
-#   socket = socket.socket(
-#     socket.AF_INET, #Internet
-#     # socket.SOCK_DGRAM #UDP
-#     socket.SOCK_STREAM)
-                            
-#   #Bind to any available address on port *portNum*
-#   socket.bind(("",portNum))
-  
-#   #Prevent the socket from blocking until it receives all the data it wants
-#   #Note: Instead of blocking, it will throw a socket.error exception if it
-#   #doesn't get any data
-  
-#   socket.setblocking(0)
-  
-#   # print "RX: Receiving data on UDP port " + str(portNum)
-#   # print ""
-#   return socket
+    if self.threadHandle and wait:
+      self.threadHandle.join()
 
+    self.threadHandle = None
 
-# def recv(socket, maxBytes=1024):
-#   logger.debug('recv(socket={}, maxBytes={})'.format(socket, maxBytes))
+  @classmethod
+  def createSocket(cls, portNum, maxConnections):   
+    sock = None
 
-#   try:
-#       #Attempt to receive up to 1024 bytes of data
-#       data,addr = socket.recvfrom(maxBytes) 
-#       #Echo the data back to the sender
-#       # socket.sendto(str(data),addr)
-#       # print('received {} from {}'.format(data, addr)) # => received b'/abc\x00\x00\x00\x00,\x00\x00\x00' from ('127.0.0.1', 63257)
-#       # if dataFunc:
-#         # dataFunc(data, addr)
-#       return (data, addr)
+    try:
+      sock = socket.socket(
+        socket.AF_INET, #Internet
+        # socket.SOCK_DGRAM #UDP
+        socket.SOCK_STREAM)
+    except OSError as msg:
+      return None
 
-#   except socket.error:
-#       #If no data is received, you get here, but it's not an error
-#       #Ignore and continue
-#       pass
-  
-#   return None
+    try:
+      #Bind to any available address on port *portNum*
+      sock.bind(('127.0.0.1',portNum))
+      
+      sock.listen(maxConnections)
 
+      #Prevent the socket from blocking until it receives all the data it wants
+      #Note: Instead of blocking, it will throw a socket.error exception if it
+      #doesn't get any data
+      # sock.setblocking(0)
+    except OSError as msg:
+      sock.close()
+      return None
 
-# class Transmitter:
-#   def __init__(self, port=4445, host=''):
-#     self.host = host
-#     self.port = port
-#     self.exit = False
+    return sock
 
-#     self.threadHandle = None
-#     self.connected = False
+class PacketService:
+  def __init__(self, serviceId, port=4445, start=True):
+    self.serviceId = serviceId # will be used (WIP) for announcing present of service via broadcasts
+    self.port = port
+    self.clients = []
 
-#   def start(self):
-#     self.exit = False
+    if start:
+      self.start()
 
-#     def exitFunc():
-#       return self.exit
+  def start(self):
+    self.serverThread = ServerThread(self.port, connectionHandler=self.onConnection)
 
-#     def dataFunc(data,addr):
-#       print('Got Data: {} from {}'.format(data, addr))
+  def stop(self):
+    if self.serverThread:
+      self.serverThread.stop()
+      self.serverThread = None
 
-#     def threadFunc_():
-#       while not self.exit:
-#         if not self.connected:
-#           self.socket = createSocket(self.port)
-#           # connect
+  def submit(self, buffer, size):
+    logger.debug('PacketService.submit, to {} clients'.format(len(self.clients)))
+    # to do; write data to socket
+    clients = self.clients.copy()
 
-#           #     txSocket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+    header = bytearray(4)
+    header[0] = (size >> 24) & 0xFF
+    header[1] = (size >> 16) & 0xFF
+    header[2] = (size >> 8) & 0xFF
+    header[3] = (size >> 0) & 0xFF
 
-        
-#         if self.connected:
-#           udpRecv(self.port, dataFunc=dataFunc, exitFunc=exitFunc)
+    body = memoryview(buffer)[0:size]
 
-#         sleep(0.1)
+    for client in clients:
+      socket, addr = client
+      socket.sendall(header)
+      socket.sendall(body)
 
-#         # receive packet header (size)
+  def onConnection(self, socket, addr):
+    self.clients.append((socket,addr))
 
-#         # receive packet body
-
-#     def threadFunc():
-#       while not self.exit:
-#         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-#           s.bind((self.host, self.port))
-#           s.listen()
-#           conn, addr = s.accept()
-          
-#           self.connectionEvent(conn, addr)
-
-#           # with con
-#           #   if not data:
-#           #     #  self.connectionEvent(conn, addr)
-
-#           #     print('Connected by', addr)
-#           #     self.connectionEvent(conn, addr)
-#           #     # while True:
-#           #     #     data = conn.recv(1024)
-#           #     #     if not data:
-#           #     #         break
-#           #         # conn.sendall(data)
-        
-  
-#     self.threadHandle = Thread(target=threadFunc)
-#     self.threadHandle.start()
-
-#   def stop(self):
-#     self.exit = True
-#     if self.threadHandle:
-#       self.threadHandle.join()
-#       self.threadHandle = None
 

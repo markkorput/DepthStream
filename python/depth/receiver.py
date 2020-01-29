@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 if __name__ == '__main__':
   parser = OptionParser()
   parser.add_option('-p', '--port', dest="port", default=4445, type='int')
+  parser.add_option('--host', dest="host", default='127.0.0.1')
   parser.add_option('-v', '--verbose', dest="verbose", action='store_true', default=False)
   parser.add_option('--verbosity', dest="verbosity", action='store_true', default='info')
 
@@ -26,7 +27,7 @@ if __name__ == '__main__':
   # packet bodies, into our buffer
   receiver = PacketStreamReceiver(buffer.write_buffer_and_size)
   # our socket thread 
-  ct = SocketClientThread('127.0.0.1', opts.port, connectionFunc=receiver.receive)
+  ct = SocketClientThread(opts.host, opts.port, connectionFunc=receiver.receive)
 
   def onConnect(s): logger.info('Connected')
   def onDisconnect(s): logger.info('Disconnected')
@@ -41,7 +42,7 @@ if __name__ == '__main__':
         # logging.info('Got frame')
         data, size = frame
         decomp = decompress(data, size)
-        logger.info('size (compressed/decompressed): {}/{}'.format(size, len(decomp)))
+        logger.info('Got packet, size (compressed/decompressed): {}/{}'.format(size, len(decomp)))
 
       sleep(0.3)
   except KeyboardInterrupt:

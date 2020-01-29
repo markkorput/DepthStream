@@ -67,7 +67,7 @@ class Player:
     if not size: return None
     body = file.read(size)
     if not body: return None
-    logger.info('Read frame from file: {}, {}'.format(timeMs, size))
+    logger.debug('Read frame from file: {}, {}'.format(timeMs, size))
     return (timeMs, size, body)
 
 

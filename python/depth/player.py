@@ -4,13 +4,14 @@ from threading import Thread
 from time import sleep
 from optparse import OptionParser
 
-from .discover.socket import SocketClientThread, PacketStreamReceiver
+from .discover.socket import PacketService
 from .discover.packet.Player import Player
 from .Buffer import Buffer
 
 logger = logging.getLogger(__name__)
 
   
+
 if __name__ == '__main__':
   parser = OptionParser()
   parser.add_option('-p', '--port', dest="port", default=4445, type='int')
@@ -30,6 +31,8 @@ if __name__ == '__main__':
   buffer = Buffer()
   player = Player(filepath, start=True)
 
+  service = PacketService("packetframes", opts.port)
+
   try:
     while True:
       frame = player.update()
@@ -37,13 +40,15 @@ if __name__ == '__main__':
       if frame:
         # logging.info('Got frame')
         data, size = frame
-        logger.info('Got frame of {} bytes'.format(size))
+        # logger.info('Got frame of {} bytes'.format(size))
+        service.submit(data, size)
 
       sleep(0.1)
   except KeyboardInterrupt:
     print("Received Ctrl+C... initiating exit")
 
   player.stop()
+  service.stop()
   # ct.stop()    
 
   sleep(.1)

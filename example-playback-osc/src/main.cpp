@@ -19,13 +19,12 @@ int main(int argc, char * argv[])
   string file = argv[1];
   int port = argc >= 3 ? stoi(argv[2]) : 4445;
 
-
   // create throttle middleware step; only allows 1 packet per second
   auto throttle = discover::middleware::packet::throttle_max_fps(1);
 
   // compression step; compresses data
-  depth::compression::CompressBuffer buf;
-  auto compress = depth::compression::middleware::compress(buf);
+  // depth::compression::CompressBuffer buf;
+  // auto compress = depth::compression::middleware::compress(buf);
 
   // Start packet-sending service, identifier "depthframes", accepting
   // new connections on port-number: <port>
@@ -57,7 +56,7 @@ int main(int argc, char * argv[])
     if (playback.update()) {
       discover::middleware::start(playback.getRef()->data(), playback.getRef()->size())
         | throttle
-        | compress
+        // | compress
         | send
         | log("submitted")
         ;

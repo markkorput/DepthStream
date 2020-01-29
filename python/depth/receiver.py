@@ -6,8 +6,9 @@ from optparse import OptionParser
 
 from discover.socket import SocketClientThread, PacketStreamReceiver
 from discover.compress import compress, decompress
+from discover.packet.Buffer import Buffer
 from middleware.Step import Step
-from .Buffer import Buffer
+
 logger = logging.getLogger(__name__)
 
 if __name__ == '__main__':

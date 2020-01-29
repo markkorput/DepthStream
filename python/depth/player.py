@@ -7,35 +7,14 @@ import numpy as np
 
 from discover.socket import PacketService
 from discover.packet.Player import Player
+from discover.packet.Buffer import Buffer
+from discover.packet.Throttle import Throttle
 from discover.compress import decompress
-from middleware.Step import Step
 
-from .Buffer import Buffer
-from .constants import *
+from middleware.Step import Step
+from .frame_sizes import to_frame
 
 logger = logging.getLogger(__name__)
-
-class Timer:
-  def __init__(self, fps):
-    self.fps = fps
-    self.interval = 1.0 / self.fps
-    self.nextTime = time()
-  
-  def check(self):
-    t = time()
-    if t < self.nextTime:
-      return False
-    self.nextTime = t + self.interval
-    return True
-  
-class Throttle:
-  def __init__(self, fps):
-    self.timer = Timer(fps)
-  
-  def process(self, data, size):
-    return self.timer.check()
-
-  __call__ = process
 
 if __name__ == '__main__':
   parser = OptionParser()
@@ -58,7 +37,6 @@ if __name__ == '__main__':
   buffer = Buffer()
   player = Player(filepath, start=True)
 
-  
   throttle = Throttle(fps=opts.fps)
 
   service = None if opts.show else PacketService("packetframes", opts.port)
@@ -75,23 +53,12 @@ if __name__ == '__main__':
     logger.warn('Failed to decompress packet of {} bytes'.format(size))
 
   def load_grayscale_image(data, size):
-      if size == FRAME_SIZE_1280x720x16BIT:
-        frame = np.frombuffer(data, dtype='<u2')
-        frame = (frame - 500 / (3500-500))
-        frame = frame.reshape(720, 1280)
-        return (frame, size)
-        
-      if size == FRAME_SIZE_640x480x16BIT:
-        frame = np.frombuffer(data, dtype='<u2')
-        frame = 1.0 - frame / 4000
-        frame = frame.reshape(480, 640)
-        return (frame, size)
+    frame = to_frame(data, size)
+    return (frame, size)
 
-      logger.warn('Unsupported frame size: {} bytes'.format(size))
-      return None
-  
   def show(frame, size):
     cv2.imshow('playback {}'.format(frame.shape), frame)
+    return False
 
   def show_frame(data, size):
     Step(data, size).sequence([
@@ -111,8 +78,8 @@ if __name__ == '__main__':
         # Step(data, size).then(throttle).then(unzip, onAbort=logUnzipFailure).then(logUnzip).then(show_frame)
         Step(data, size).sequence([
           throttle,
-          show_frame if opts.show else None,
-          service.submit if service else None])
+          service.submit if service else None,
+          show_frame if opts.show else None])
 
       key = cv2.waitKey(20) & 0xFF
       if key == 27 or key == ord('q'): # escape or Q

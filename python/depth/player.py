@@ -4,40 +4,13 @@ from threading import Thread
 from time import sleep, time
 from optparse import OptionParser
 
-from .discover.socket import PacketService
-from .discover.packet.Player import Player
-from .Buffer import Buffer
+from discover.socket import PacketService
+from discover.packet.Player import Player
 from middleware.Step import Step
 
+from .Buffer import Buffer
+
 logger = logging.getLogger(__name__)
-
-
-# class Step:
-#   def __init__(self, *args):
-#     self.args = args
-  
-#   def step(self, func):
-#     if not self.data: return self
-
-#     res = func(*self.args)
-
-#     if type(res) == type(True):
-#       if not res:
-#         self.args = None
-#     else:
-#       self.args = res
-
-#     return self
-  
-#   @classmethod
-#   def start_with(self, buffer, size):
-#     return Step((buffer,size))
-
-#   @classmethod
-#   def to_single_arg(cls, func):
-#     def f(packet):
-#       return func(packet[0], packet[1])
-#     return f
 
 class Timer:
   def __init__(self, fps):

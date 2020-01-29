@@ -4,8 +4,8 @@ from threading import Thread
 from time import sleep
 from optparse import OptionParser
 
-from .discover.socket import SocketClientThread, PacketStreamReceiver
-from .discover.compress import compress, decompress
+from discover.socket import SocketClientThread, PacketStreamReceiver
+from discover.compress import compress, decompress
 from middleware.Step import Step
 from .Buffer import Buffer
 logger = logging.getLogger(__name__)

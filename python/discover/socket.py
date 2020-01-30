@@ -277,76 +277,69 @@ class PacketStreamInfo:
 # Service
 #
 
-class ServerThread:
+class SocketConnectionAccepter:
   """
-  Manages a thread that creates a socket on which
-  incoming conections are accepted. New connections
-  are passed on to the connectionHandler specified in the constructor.
+  Creates and manages a socket on which incoming connections are accepted.
+  The update() method should be called in the application's main loop,
+  to process new incoming connections.
   """
 
-  def __init__(self, port=4445, start=True, connectionHandler=None, maxConnections=1, maxPortAttempts=5, socketTimeout=0.5, idleFunc=None):
+  def __init__(self, port=4445, maxConnections=5, maxPortAttempts=5, socketTimeout=0.2, start=True):
     self.port = port
-    self.connectionHandler = connectionHandler
     self.maxConnections = maxConnections
     self.maxPortAttempts = maxPortAttempts
     self.socketTimeout = socketTimeout
-    self.idleFunc = idleFunc
 
-    self.activeConnectionHandler = None
-    self.threadHandle = None
-    self.running = False
+    self.activeSocket = None
 
     if start:
       self.start()
 
+  def __del__(self):
+    self.stop()
+
   def start(self):
-    def threadFunc():
-      s = None
-      while self.running:
-        # make sure we have a valid socket
-        if not s:
-          s = ServerThread.createSocket(self.port, self.maxConnections, maxPortAttempts=self.maxPortAttempts, socketTimeout=self.socketTimeout)
+    s = SocketConnectionAccepter.createSocket(self.port, maxConnections=self.maxConnections, maxPortAttempts=self.maxPortAttempts, socketTimeout=self.socketTimeout)
 
-        # failed to create socket, wait and retry?
-        if not s:
-          logger.warning('Could not create service socket on port: {}'.format(self.port))
-          sleep(0.5)
-          continue
+    # failed to create socket, wait and retry?
+    if not s:
+      logger.warning('Could not create service socket on port: {}'.format(self.port))
+      return
 
-        # accept new connection on socket
-        clientsocket = None
-        addr = None
+    self.activeSocket = s
 
-        try:
-          clientsocket, addr = s.accept()
-        except socket.timeout:
-          clientsocket = None
-        except BlockingIOError as err:
-          clientsocket = None
-          logging.warn('Accept error: {}'.format(err.errno))
-          sleep(0.5)
+  def stop(self):
+    if self.activeSocket:
+      self.activeSocket.close()
+      self.activeSocket = None
 
-        if clientsocket and addr and self.connectionHandler:
-          self.connectionHandler(clientsocket, addr)
+  def update(self, onConnection=None):
+    s = self.activeSocket
 
-        if self.idleFunc:
-          self.idleFunc()
+    # make sure we have a valid socket
+    if not s:
+      self.start()
 
-      if s:
-        s.close()
+    clientsocket = None
+    addr = None
 
+    # accept new connection on socket (non-blocking)
+    try:
+      clientsocket, addr = s.accept()
+    except socket.timeout:
+      clientsocket = None
+      return
+    except BlockingIOError as err:
+      clientsocket = None
+      logging.warn('Accept error: {}'.format(err.errno))
 
-    self.running = True
-    self.threadHandle = Thread(target=threadFunc)
-    self.threadHandle.start()
-
-  def stop(self, wait=True):
-    self.running = False
-
-    if self.threadHandle and wait:
-      self.threadHandle.join()
-
-    self.threadHandle = None
+    # notify caller about any new connections
+    if clientsocket and addr:
+      if onConnection:
+        onConnection(clientsocket, addr)
+      else:
+        logger.warn('Unhandled new socket connection')
+        clientsocket.close()
 
   @classmethod
   def createSocket(cls, portNum, maxConnections, maxPortAttempts=1, socketTimeout=None):
@@ -390,6 +383,51 @@ class ServerThread:
 
     logger.warn("Failed to bind server thread socket after {} port attempt(s)".format(maxPortAttempts))
     return None
+
+class ServerThread:
+  """
+  Manages a thread that runs a socket connection accepter
+  """
+
+  def __init__(self, port=4445, start=True, connectionHandler=None, maxConnections=1, maxPortAttempts=5, socketTimeout=0.5, idleFunc=None):
+    self.connectionAccepter = SocketConnectionAccepter(port=port, maxConnections=maxConnections, maxPortAttempts=maxPortAttempts, socketTimeout=socketTimeout, start=start)
+    self.idleFunc = idleFunc
+
+    self.connectionHandler = connectionHandler
+    self.threadHandle = None
+    self.running = False
+
+    if start:
+      self.start()
+
+  def start(self):
+    def threadFunc():
+      self.connectionAccepter.start()
+
+      while self.running:
+        self.connectionAccepter.update(onConnection=self.handleConnection)
+        sleep(0.2)
+
+      self.connectionAccepted.stop()
+
+    self.running = True
+    self.threadHandle = Thread(target=threadFunc)
+    self.threadHandle.start()
+
+  def stop(self, wait=True):
+    self.running = False
+
+    if self.threadHandle and wait:
+      self.threadHandle.join()
+
+    self.threadHandle = None
+
+  def handleConnection(self, socket, addr):
+    if self.connectionHandler:
+      self.connectionHandler(socket, addr)
+      return
+
+    logger.warn("ServerThread has not connection handler")   
 
 class PacketConsumer:
   """

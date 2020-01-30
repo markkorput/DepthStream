@@ -91,7 +91,7 @@ if __name__ == '__main__':
 
       # process frame; decompress, then log decompress information
       step = Step(*packet).sequence([
-        # log_packet_size,
+        log_packet_size,
         processStreamInfoPackets
       ]).then(unzip, onAbort=log_unzip_failure) #.then(log_unzip)
 

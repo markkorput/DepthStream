@@ -3,7 +3,7 @@ import logging, cv2
 from time import sleep
 from optparse import OptionParser
 
-from discover.socket import ServerThread, PacketService
+from discover.socket import SocketConnectionAccepter, PacketService
 from discover.packet.Player import Player
 from discover.packet.Buffer import Buffer
 from middleware import Step
@@ -34,18 +34,21 @@ if __name__ == '__main__':
   buffer = Buffer()
   player = Player(filepath, start=True)
 
-  throttle = create_throttle(opts.fps)
+  
 
-  service = None if opts.show else PacketService("packetframes", opts.port,
+  server = SocketConnectionAccepter(opts.port)
+
+  # todo; (re-)initialize service with actual server port
+  service = None if opts.show else PacketService("packetframes", server.port,
     infoData={'playback': filepath})
 
-  serverThread = ServerThread(opts.port,
-    # newly connected consumers are passed on to our service
-    connectionHandler=service.addConsumerSocket)
-
-  processor = None
-  # bit_converter = convert_16u_to_8u
+  # packet processing step: throttle
+  throttle = create_throttle(opts.fps)
+  # packet processing step: bit convert 16 bits to 8 bits
   bit_converter = create_16u_to_8u_converter(0, 1000)
+
+  # packet processing step: processor (image effects)
+  processor = None
 
   if opts.show and opts.processor:
     from .processor import create_controlled_processor_from_json_file #, create_processor_from_json_file
@@ -57,6 +60,7 @@ if __name__ == '__main__':
 
     processor = func
 
+  # packet processing step: showing frame to user
   def show_frame(data, size):
     Step(data, size).sequence([
       unzip, # else log_unzip_failure
@@ -64,17 +68,24 @@ if __name__ == '__main__':
       load_grayscale_image,
       # bit_converter,
       # processor, # ony loaded if --processor arg specified a valid file
+      processor,
       show
     ])
 
+  # main loop
   try:
     while True:
-      service.update() # process incoming data
+      # update our server add pass any new incoming connections on to our service
+      server.update(onConnection=service.addConsumerSocket)
 
-      frame = player.update()
+      # process incoming data
+      service.update() 
 
-      if frame:
-        data, size = frame
+      # check if our player has any new packets
+      packet = player.update()
+
+      if packet:
+        data, size = packet
 
         # Step(data, size).then(throttle).then(unzip, onAbort=logUnzipFailure).then(logUnzip).then(show_frame)
         Step(data, size).sequence([
@@ -91,7 +102,7 @@ if __name__ == '__main__':
     print("Received Ctrl+C... initiating exit")
 
   player.stop()
-  serverThread.stop()
+  server.stop()
 
   sleep(.1)
   

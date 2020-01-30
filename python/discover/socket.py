@@ -10,6 +10,14 @@ logger = logging.getLogger(__name__)
 #
 
 class ClientThread:
+  """
+  ClientThread manages a thread that creates a socket to connect to
+  a server. Once the connection is established, control is passed on to
+  the connectionFunc specified in the constructor. When the connectionFunc
+  returns, this is considered to be an end of the connection and the thread
+  will try to re-establish connection with the server.
+  """
+
   def __init__(self, host='127.0.0.1', port=4445, reconnectDelay=1.0, connectionFunc=None, maxBytes=1024, start=True):
     self.host = host
     self.port = port
@@ -32,6 +40,9 @@ class ClientThread:
       self.running = True
       self.start()
   
+  def __del__(self):
+    self.stop()
+
   def start(self):
     def threadFunc():
       while self.running:
@@ -84,6 +95,7 @@ class ClientThread:
       if 'stop' in dir(self.activeConnectionFunc):
         logger.info('ClientThread found stop method on activeConnectionFunc, attempting to stop it...')
         self.activeConnectionFunc.stop()
+        self.activeConnectionFunc = None
 
     if self.threadHandle and wait:
       self.threadHandle.join()
@@ -102,13 +114,13 @@ class ClientThread:
   def getSocket(self):
     return self.activeSocket
 
-  def sendall(self, data):
-    if not self.activeSocket:
-      logger.warn('No active socket, can\'t send data: {}'.format(data))
-      return None
-    return self.activeSocket.sendall(data)
-
 class PacketStreamReceiver:
+  """
+  Receives packets (header/body pairs) in and endless loop, passing received
+  packets to the handler specified in the constructor. Designed to be invoked
+  using the receive method inside a ClientThread.
+  """
+
   def __init__(self, handler, numBuffers=2):
     self.packetHandler = handler
     self.stoppedByOwner = False    
@@ -220,6 +232,11 @@ from json import loads as json_loads
 from json.decoder import JSONDecodeError
 
 class PacketStreamInfo:
+  """
+  PacketStreamInfo wraps all logic for sending outgoing,
+  and processing incoming packet stream information.
+  """
+
   REQUEST_BODY = b'GET/info.json'
 
   def __init__(self, data):
@@ -261,6 +278,12 @@ class PacketStreamInfo:
 #
 
 class ServerThread:
+  """
+  Manages a thread that creates a socket on which
+  incoming conections are accepted. New connections
+  are passed on to the connectionHandler specified in the constructor.
+  """
+
   def __init__(self, port=4445, start=True, connectionHandler=None, maxConnections=1, maxPortAttempts=5, socketTimeout=0.5, idleFunc=None):
     self.port = port
     self.connectionHandler = connectionHandler
@@ -269,6 +292,7 @@ class ServerThread:
     self.socketTimeout = socketTimeout
     self.idleFunc = idleFunc
 
+    self.activeConnectionHandler = None
     self.threadHandle = None
     self.running = False
 
@@ -367,8 +391,12 @@ class ServerThread:
     logger.warn("Failed to bind server thread socket after {} port attempt(s)".format(maxPortAttempts))
     return None
 
-
 class PacketConsumer:
+  """
+  PacketConsumer represents a single consumer
+  connected via sockets. It provides an interface
+  to receive data (non-blocking) from the specified consumer.
+  """
   def __init__(self, socket, addr, timeout=0.2):
     self.socket = socket
     self.addr = addr
@@ -403,7 +431,14 @@ class PacketConsumer:
     return data
 
 from json import dumps as json_dumps
+
+
 class PacketService:
+  """
+  PacketService Manages a list of connected consumers.
+  and sends packets (header/body) of data to them
+  """  
+
   DEFAULT_INFO = {'format':'streaminfo-0.0.1'}
 
   def __init__(self, serviceId, port=4445, start=True, infoData=DEFAULT_INFO):
@@ -431,9 +466,7 @@ class PacketService:
     self.consumers.clear()
 
   def update(self):
-    # polls all connected consumer sockets for
-    # incoming data and responds if necessary
-    self.recv()
+    self.processIncomingConsumerData()
 
   def submit(self, buffer, size):
     logger.debug('PacketService.submit, to {} consumers'.format(len(self.consumers)))
@@ -474,14 +507,18 @@ class PacketService:
 
     return True
 
-  def onConnection(self, socket, addr):
+  def addConsumerSocket(self, socket, addr):
     self.consumers.append(PacketConsumer(socket, addr))
 
   def onDisconnect(self, consumer):
     self.consumers.remove(consumer)
     logger.debug('Client disconnected, {} connected consumers left'.format(len(self.consumers)))
 
-  def recv(self):
+  def processIncomingConsumerData(self):
+    """
+    Polls all connected consumer sockets for
+    incoming data and responds if necessary
+    """
     cs = self.consumers.copy()
     for c in cs:
       data = c.recv()
@@ -498,4 +535,3 @@ class PacketService:
           logger.info('Sent stream info request response to consumer ({} bytes): {}'.format(len(response), response))
         else:
           logger.warn('Failed to send stream info')
-

@@ -60,21 +60,21 @@ if __name__ == '__main__':
   ct.connectEvent += onConnect
   ct.disconnectEvent += onDisconnect
 
-  def checkInfo(data, size):
+  def processStreamInfoPackets(data, size):
     global streamInfo
 
     info_data = PacketStreamInfo.parse(data, size)
     if info_data:
       logger.info('Got stream info: {}'.format(data))
       streamInfo = PacketStreamInfo(info_data)
+      return False # by returning false, further packer processing is cancelled
 
+    # request stream info interval
     if streamInfo == None and infoTimer.check():
       sock = ct.getSocket()
-      if not sock:
-        return True
-
-      logger.info('Sending stream info request')
-      PacketStreamInfo.sendRequest(sock)
+      if sock:
+        logger.info('Sending stream info request')
+        PacketStreamInfo.sendRequest(sock)
 
     return True
 
@@ -92,8 +92,8 @@ if __name__ == '__main__':
       # process frame; decompress, then log decompress information
       step = Step(*packet).sequence([
         # log_packet_size,
-        checkInfo
-      ]).then(unzip, onAbort=log_unzip_failure).then(log_unzip)
+        processStreamInfoPackets
+      ]).then(unzip, onAbort=log_unzip_failure) #.then(log_unzip)
 
       # IF the show option is enabled, further process the packet by converting
       # it into a grayscale image and showing it

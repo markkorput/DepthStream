@@ -38,7 +38,10 @@ if __name__ == '__main__':
 
   service = None if opts.show else PacketService("packetframes", opts.port,
     infoData={'playback': filepath})
-  serverThread = ServerThread(opts.port, connectionHandler=service.onConnection)
+
+  serverThread = ServerThread(opts.port,
+    # newly connected consumers are passed on to our service
+    connectionHandler=service.addConsumerSocket)
 
   processor = None
   # bit_converter = convert_16u_to_8u
@@ -54,7 +57,6 @@ if __name__ == '__main__':
 
     processor = func
 
-
   def show_frame(data, size):
     Step(data, size).sequence([
       unzip, # else log_unzip_failure
@@ -67,8 +69,10 @@ if __name__ == '__main__':
 
   try:
     while True:
-      service.update()
+      service.update() # process incoming data
+
       frame = player.update()
+
       if frame:
         data, size = frame
 
@@ -87,8 +91,7 @@ if __name__ == '__main__':
     print("Received Ctrl+C... initiating exit")
 
   player.stop()
-  if service:
-    service.stop()
+  serverThread.stop()
 
   sleep(.1)
   

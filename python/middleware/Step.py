@@ -26,6 +26,8 @@ class Step:
       if action != None:
         cur = cur.then(action)
 
+    return cur
+
   @classmethod
   def explode(cls, args):
     if not args:

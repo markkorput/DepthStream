@@ -3,7 +3,7 @@ import logging, cv2
 from time import sleep
 from optparse import OptionParser
 
-from discover.socket import PacketService
+from discover.socket import ServerThread, PacketService
 from discover.packet.Player import Player
 from discover.packet.Buffer import Buffer
 from middleware import Step
@@ -36,12 +36,15 @@ if __name__ == '__main__':
 
   throttle = create_throttle(opts.fps)
 
-  service = None if opts.show else PacketService("packetframes", opts.port)
+  service = None if opts.show else PacketService("packetframes", opts.port,
+    infoData={'playback': filepath})
+  serverThread = ServerThread(opts.port, connectionHandler=service.onConnection)
 
   processor = None
   # bit_converter = convert_16u_to_8u
   bit_converter = create_16u_to_8u_converter(0, 1000)
-  if opts.processor:
+
+  if opts.show and opts.processor:
     from .processor import create_controlled_processor_from_json_file #, create_processor_from_json_file
     p = create_controlled_processor_from_json_file(opts.processor, winid='ctrl')
 
@@ -64,7 +67,7 @@ if __name__ == '__main__':
 
   try:
     while True:
-      
+      service.update()
       frame = player.update()
       if frame:
         data, size = frame

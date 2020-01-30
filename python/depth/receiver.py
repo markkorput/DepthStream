@@ -4,7 +4,7 @@ from threading import Thread
 from time import sleep
 from time import time as getSysTime
 from optparse import OptionParser
-from discover.socket import ClientThread, PacketStreamInfo, appendPacketsIntoList
+from discover.socket import createClientSocket, ClientThread, PacketStreamInfo, appendPacketsIntoList, PacketReader
 from discover.packet.Buffer import Buffer
 from middleware import Step
 from .steps import unzip, log_packet_size, log_unzip, log_unzip_failure, load_grayscale_image, show
@@ -44,24 +44,18 @@ if __name__ == '__main__':
 
   infoTimer = IntervalTimer(2.0)
   streamInfo = None
+  clientsocket = None
+  reader = PacketReader()
 
-  queue = []
-
-  # our socket thread takes care of connecting to the specified server. When
-  # a connection has been established, it passes control to our receiver
-  ct = ClientThread(opts.host, opts.port,
-    # once connection has been established this receiver will
-    # continuously read packet into our buffer
-    connectionFunc=appendPacketsIntoList(queue))
-
-  # register some callbacks for feedback about connection status
-  def onConnect(socket): logger.info('Connected')
-  def onDisconnect(socket): logger.info('Disconnected')
-  ct.connectEvent += onConnect
-  ct.disconnectEvent += onDisconnect
+  def connectToServer():
+    global clientsocket
+    logger.info('connectToServer')
+    clientsocket = createClientSocket(opts.host, opts.port, socketTimeout=None)
+    logger.info('connected to: {}:{}'.format(opts.host, opts.port) if clientsocket else 'failed')
 
   def processStreamInfoPackets(data, size):
     global streamInfo
+    global clientsocket
 
     info_data = PacketStreamInfo.parse(data, size)
     if info_data:
@@ -71,45 +65,43 @@ if __name__ == '__main__':
 
     # request stream info interval
     if streamInfo == None and infoTimer.check():
-      sock = ct.getSocket()
-      if sock:
-        logger.info('Sending stream info request')
-        PacketStreamInfo.sendRequest(sock)
+      if clientsocket:
+        logger.debug('Sending stream info request')
+        PacketStreamInfo.sendRequest(clientsocket)
 
     return True
+
+  connectToServer()
 
   try:
     keepGoing = True
 
     while keepGoing:
-      if len(queue) < 1:
-        sleep(0.3)
-        continue
+      packet = reader.read(clientsocket, onDisconnect=connectToServer) if clientsocket else None
 
-      packet = queue[0]
-      del queue[0]
+      if packet:
+        # process frame; decompress, then log decompress information
+        step = Step(*packet).sequence([
+          log_packet_size,
+          processStreamInfoPackets
+        ]).then(unzip, onAbort=log_unzip_failure) #.then(log_unzip)
 
-      # process frame; decompress, then log decompress information
-      step = Step(*packet).sequence([
-        log_packet_size,
-        processStreamInfoPackets
-      ]).then(unzip, onAbort=log_unzip_failure) #.then(log_unzip)
+        # IF the show option is enabled, further process the packet by converting
+        # it into a grayscale image and showing it
+        if opts.show:
+          step.sequence([
+            load_grayscale_image,
+            show
+          ])
 
-      # IF the show option is enabled, further process the packet by converting
-      # it into a grayscale image and showing it
       if opts.show:
-        step.sequence([
-          load_grayscale_image,
-          show
-        ])
-
-      key = cv2.waitKey(20) & 0xFF
-      if key == 27 or key == ord('q'): # escape or Q
-        keepGoing = False
+        key = cv2.waitKey(20) & 0xFF
+        if key == 27 or key == ord('q'): # escape or Q
+          keepGoing = False
 
   except KeyboardInterrupt:
     print("Received Ctrl+C... initiating exit")
 
-  ct.stop()
+  # ct.stop()
   sleep(.1)
   

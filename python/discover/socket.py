@@ -9,6 +9,24 @@ logger = logging.getLogger(__name__)
 # Client
 #
 
+def createClientSocket(host='127.0.0.1', port=4445, socketTimeout=0.1):
+  logger.info('createClientSocket: {}:{}'.format(host,port))
+  s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  
+  # non-blocking
+  if socketTimeout != None:
+    s.settimeout(socketTimeout)
+
+  # connect to server
+  errno = s.connect_ex((host, port))
+
+  if errno:
+    logger.warn('failed to connect to server: {}'.format(errno))
+    return None
+  
+  return s
+
+
 class ClientThread:
   """
   ClientThread manages a thread that creates a socket to connect to
@@ -46,38 +64,37 @@ class ClientThread:
   def start(self):
     def threadFunc():
       while self.running:
-        # create socket
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-          # non-blocking
-          # s.setblocking(0)
+        if not self.activeSocket:
+          s = createClientSocket(self.host, self.port, socketTimeout=None)
 
-          # connect to server
-          errno = s.connect_ex((self.host, self.port))
-
-          if errno != 0:
+          if not s:
             logger.warning('Failed to connect to {}:{}'.format(self.host, self.port))
             self.connectFailureEvent((self.host, self.port))
-          else:
-            self.activeSocket = s
-            self.connectEvent(s)
+            sleep(0.5)
+            continue
 
-            # not that we're connected, pass control to the connectionFunc specified in our
-            # constructor, or, if no connectionFunc was specifed, run our default connection
-            # func which published incoming data usng self.dataEvent
-            func = self.connectionFunc if self.connectionFunc else self._defaultConnectionFunc
+          self.activeSocket = s
+          self.connectEvent(s)
 
-            # connection func can be a list, if it's not, for simplicity
-            # we'll just turn it into a single item list here
-            if type(func) != type([]) and type(func) != type(()):
-              func = [func]
+        s = self.activeSocket
 
-            for f in func:
-              self.activeConnectionFunc = f
-              f(s)
+        # not that we're connected, pass control to the connectionFunc specified in our
+        # constructor, or, if no connectionFunc was specifed, run our default connection
+        # func which published incoming data usng self.dataEvent
+        func = self.connectionFunc if self.connectionFunc else self._defaultConnectionFunc
 
-            self.activeConnectionFunc = None
-            self.activeSocket = None
-            self.disconnectEvent(s)
+        # connection func can be a list, if it's not, for simplicity
+        # we'll just turn it into a single item list here
+        if type(func) != type([]) and type(func) != type(()):
+          func = [func]
+
+        for f in func:
+          self.activeConnectionFunc = f
+          f(s)
+
+        self.activeConnectionFunc = None
+        self.activeSocket = None
+        self.disconnectEvent(s)
 
         sleep(self.reconnectDelay)
 
@@ -114,16 +131,12 @@ class ClientThread:
   def getSocket(self):
     return self.activeSocket
 
-class PacketStreamReceiver:
+class PacketReader:
   """
-  Receives packets (header/body pairs) in and endless loop, passing received
-  packets to the handler specified in the constructor. Designed to be invoked
-  using the receive method inside a ClientThread.
+  Reads packets (header/body) from a socket.
   """
 
-  def __init__(self, handler, numBuffers=2):
-    self.packetHandler = handler
-    self.stoppedByOwner = False    
+  def __init__(self, numBuffers=2):
     self.buffers = list(map(lambda i: None, range(max(1,numBuffers))))
     self.bufferCursor = 0
 
@@ -176,37 +189,64 @@ class PacketStreamReceiver:
     b3 = 0xFF & buf[3]
     return ((b0 << 24) | (b1 << 16) | (b2 << 8) | b3)
 
+  def read(self, socket, onDisconnect=None, continueFunc=None):
+    if socket == None:
+      if onDisconnect: onDisconnect()
+      return None
+    # logger.debug('PacketReader.read')
+
+    # select next buffer
+    buffer = self.buffers[self.bufferCursor]
+
+    # logger.info('Reading header...')
+    # read packet header (body size)
+    buffer, size = PacketReader.receive_bytes(socket, 4, buffer, continueFunc)
+
+    if not buffer:
+      logger.debug('Connection terminated while reading header')
+      if onDisconnect: onDisconnect()
+      return None
+
+    body_size = PacketReader.parse_int(buffer)
+    logger.debug('Got body size: {}'.format(body_size))
+
+    buffer, size = PacketReader.receive_bytes(socket, body_size, buffer, continueFunc)
+
+    if not buffer:
+      logger.debug('Connection terminated while reading body')
+      if onDisconnect: onDisconnect()
+      return None
+
+    self.buffers[self.bufferCursor] = buffer # receive_bytes method might have allocated a newer bigger buffer
+    self.bufferCursor = self.bufferCursor+1 if self.bufferCursor+1 < len(self.buffers) else 0
+
+    return buffer, size
+
+class PacketStreamReceiver:
+  """
+  Receives packets (header/body pairs) in and endless loop, passing received
+  packets to the handler specified in the constructor. Designed to be invoked
+  using the receive method inside a ClientThread.
+  """
+
+  def __init__(self, handler, numBuffers=2):
+    self.reader = PacketReader(numBuffers=numBuffers)
+    self.packetHandler = handler
+    self.stoppedByOwner = False    
+
   def receive(self, socket):
-    # this func will be pass on to the receive_bytes classmethod
-    def continueFunc():
-      return not self.stoppedByOwner
+    self.disconnected = False
 
     # loop until told to stop
-    while not self.stoppedByOwner:
-      # select next buffer
-      buffer = self.buffers[self.bufferCursor]
+    while not self.stoppedByOwner and not self.disconnected:
+      def onDisconnect():
+        self.disconnected = True
 
-      # logger.info('Reading header...')
-      # read packet header (body size)
-      buffer, size = PacketStreamReceiver.receive_bytes(socket, 4, buffer, continueFunc)
+      packet = self.reader.update(onDisconnect=onDisconnect)
 
-      if not buffer:
-        logger.debug('Connection terminated while reading header')
-        return
-
-      body_size = PacketStreamReceiver.parse_int(buffer)
-      logger.debug('Got body size: {}'.format(body_size))
-
-      buffer, size = PacketStreamReceiver.receive_bytes(socket, body_size, buffer, continueFunc)
-
-      if not buffer:
-        logger.debug('Connection terminated while reading body')
-        return
-
-      self.packetHandler(buffer, size)
-
-      self.buffers[self.bufferCursor] = buffer # receive_bytes method might have allocated a newer bigger buffer
-      self.bufferCursor = self.bufferCursor+1 if self.bufferCursor+1 < len(self.buffers) else 0
+      if packet:
+        buffer, size = packet
+        self.packetHandler(buffer, size)
 
   def stop(self):
     logger.debug('PacketStreamReceiver.stop')
@@ -460,7 +500,7 @@ class PacketConsumer:
     if len(data) != 4:
       return None
 
-    body_size = PacketStreamReceiver.parse_int(data)
+    body_size = PacketReader.parse_int(data)
     logger.debug('consumer got package size: {}'.format(body_size))
 
     data = self.socket.recv(body_size)

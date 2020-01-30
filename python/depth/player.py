@@ -93,9 +93,10 @@ if __name__ == '__main__':
           service.submit if service else None,
           show_frame if opts.show else None])
 
-      key = cv2.waitKey(20) & 0xFF
-      if key == 27 or key == ord('q'): # escape or Q
-        break
+      if opts.show:
+        key = cv2.waitKey(20) & 0xFF
+        if key == 27 or key == ord('q'): # escape or Q
+          break
 
       sleep(0.1)
   except KeyboardInterrupt:

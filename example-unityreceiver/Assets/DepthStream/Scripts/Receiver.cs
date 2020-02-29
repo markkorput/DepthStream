@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using UnityEngine;
+using UnityEngine.Events;
 
 namespace depth {
     public class Receiver : MonoBehaviour
@@ -11,10 +12,17 @@ namespace depth {
         public int SenderPort = SocketReceiver.DEFAULT_PORT;
         public int BufferSize = SocketReceiver.DEFAULT_BUFFER_SIZE;
         public bool DecompressPackets = true;
-        
+
+        [System.Serializable]        
+        public class FrameEvent : UnityEvent<Frame> {}
+        public FrameEvent OnFrame = new FrameEvent();
+
+
         SocketReceiver receiver;      
 
         string last = null;
+
+        List<System.Action> updateActions = new List<System.Action>();
 
 
         // Start is called before the first frame update
@@ -35,14 +43,27 @@ namespace depth {
         void Update()
         {
             if (last != null) Debug.Log(last);
+            var actions = updateActions.ToArray();
+            updateActions.Clear();
+
+            foreach(var ac in actions) {
+                ac.Invoke();
+            }
         }
 
         void onPacket(int len, byte[] packet) {
+            
             if (DecompressPackets) {
                 var decompressed = Decompress(packet, len);
                 last = "Got packet: "+len+" bytes, decompressed: "+decompressed.Length;
+                // this.OnFrame.Invoke(new Frame(len, decompressed));
             } else {
-                last = "Got packet: "+len+" bytes";
+                // last = "Got packet: "+len+" bytes";
+                var frame = new Frame(len, packet);
+                updateActions.Add(() => {
+                    this.OnFrame.Invoke(frame);
+                    this.receiver.ReadyForNext();
+                });
             }
         }
 

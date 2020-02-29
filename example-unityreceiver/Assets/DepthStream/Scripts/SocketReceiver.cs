@@ -18,6 +18,10 @@ namespace depth {
     byte[] receiveBuffer = null;
     int lastPacketLength = 0;
     Action<int, byte[]> callback;
+    string error = null;
+    bool waitForNext = true;
+    bool readyForNext = true;
+
     public SocketReceiver(Socket socket, Action<int, byte[]> callback, int bufferSize=DEFAULT_BUFFER_SIZE) {
       this.socket = socket;
       this.callback = callback;
@@ -46,11 +50,20 @@ namespace depth {
       this.socket = null;
     }
 
+    public void ReadyForNext() {
+      readyForNext = true;
+    }
+
     private void ThreadFunc()
     {     
-      try {
+      // try {
         int len;
         while (socket != null) {
+          if (!readyForNext) {
+            Thread.Sleep(10);
+            continue;
+          }
+
           len = readHeader(socket, receiveBuffer);
           
           if (len <= 0) continue;
@@ -65,11 +78,13 @@ namespace depth {
 
           lastPacketLength = len;
           if (this.callback != null) this.callback.Invoke(len, receiveBuffer);
+
+          if (waitForNext) readyForNext = false;
         }
-      }
-      catch (Exception err) {
-          Debug.LogError(err.ToString());
-      }
+      // }
+      // catch (Exception err) {
+      //     error = err.ToString();
+      // }
     }
 
     private static int readHeader(Socket socket, byte[] buffer) {

@@ -78,6 +78,11 @@ void TransmitterAgent::configure(int argc, char** argv) {
       continue;
     }
 
+    if(strcmp(argv[i], "--no-compress") == 0 || strcmp(argv[i], "-C") == 0) {
+      bCompress = false;
+      continue;
+    }
+
     if(argc <= (i+1)) {
       std::cerr << "Didn't get value for " << argv[i] << std::endl;
       break;
@@ -120,14 +125,17 @@ bool TransmitterAgent::transmitFrame(const void* data, size_t size) {
     data = compressor->getData();
     size = compressor->getSize();
   }
+  // else {
+  //   std::cout << "skipping compression" << std::endl;
+  // }
 
   // std::cout << "transmit" << std::endl; 
   if (!transmitter->transmit((const char*)data, size)) {
-    if(bVerbose) std::cout << "transmit of " << size << "-byte compressed depth frame FAILED (probably no connection)" << std::endl;
+    // if(bVerbose) std::cout << "transmit of " << size << "-byte compressed depth frame FAILED (probably no connection)" << std::endl;
     return false;
   } 
   
-  if(bVerbose) std::cout << "transmitted " << size << "-byte compressed depth frame" << std::endl;
+  // if(bVerbose) std::cout << "transmitted " << size << "-byte compressed depth frame" << std::endl;
 
   return true;
 }

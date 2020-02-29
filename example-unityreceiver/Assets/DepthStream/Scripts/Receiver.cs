@@ -9,16 +9,18 @@ namespace depth {
     {
         public string SenderHost = SocketReceiver.DEFAULT_HOST;
         public int SenderPort = SocketReceiver.DEFAULT_PORT;
-        SocketReceiver receiver;
+        public int BufferSize = SocketReceiver.DEFAULT_BUFFER_SIZE;
+        public bool DecompressPackets = true;
+        
+        SocketReceiver receiver;      
 
         string last = null;
-
 
 
         // Start is called before the first frame update
         void Start()
         {
-            receiver = new SocketReceiver(SocketReceiver.Connect(SenderHost, SenderPort), onPacket);
+            receiver = new SocketReceiver(SocketReceiver.Connect(SenderHost, SenderPort), onPacket, BufferSize);
             receiver.Start();
         }
 
@@ -36,8 +38,12 @@ namespace depth {
         }
 
         void onPacket(int len, byte[] packet) {
-            var decompressed = Decompress(packet, len);
-            last = "Got packet: "+len+" bytes, decompressed: "+decompressed.Length;
+            if (DecompressPackets) {
+                var decompressed = Decompress(packet, len);
+                last = "Got packet: "+len+" bytes, decompressed: "+decompressed.Length;
+            } else {
+                last = "Got packet: "+len+" bytes";
+            }
         }
 
 

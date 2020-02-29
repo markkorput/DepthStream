@@ -384,6 +384,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   SenderHost: 127.0.0.1
   SenderPort: 4445
+  BufferSize: 1843200
+  DecompressPackets: 0
 --- !u!4 &286600227
 Transform:
   m_ObjectHideFlags: 0

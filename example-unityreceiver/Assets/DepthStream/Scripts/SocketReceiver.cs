@@ -13,6 +13,8 @@ namespace depth {
     public const string DEFAULT_HOST = "127.0.0.1";
     public const int DEFAULT_PORT = 4445;
 
+    public bool IsConnected { get { return IsConnected; }}
+
     Socket socket = null;
     Thread receiveThread = null;
     byte[] receiveBuffer = null;
@@ -21,6 +23,7 @@ namespace depth {
     string error = null;
     bool waitForNext = true;
     bool readyForNext = true;
+    bool isConnected = false;
 
     public SocketReceiver(Socket socket, Action<int, byte[]> callback, int bufferSize=DEFAULT_BUFFER_SIZE) {
       this.socket = socket;
@@ -55,9 +58,12 @@ namespace depth {
     }
 
     private void ThreadFunc()
-    {     
+    {   
+      isConnected = true;
+  
       // try {
         int len;
+        
         while (socket != null) {
           if (!readyForNext) {
             Thread.Sleep(10);
@@ -66,7 +72,7 @@ namespace depth {
 
           len = readHeader(socket, receiveBuffer);
           
-          if (len <= 0) continue;
+          if (len <= 0) break;
           
           if (len > receiveBuffer.Length) {
             Debug.LogWarning("Header announced "+len+"-byte packat, which is too big for our buffer ("+receiveBuffer.Length+" bytes), ignoring packet");
@@ -74,7 +80,7 @@ namespace depth {
             continue;
           }
 
-          if (readBody(socket, receiveBuffer, len) != len) continue;
+          if (readBody(socket, receiveBuffer, len) != len) break;
 
           lastPacketLength = len;
           if (this.callback != null) this.callback.Invoke(len, receiveBuffer);
@@ -85,6 +91,8 @@ namespace depth {
       // catch (Exception err) {
       //     error = err.ToString();
       // }
+
+        isConnected = false;
     }
 
     private static int readHeader(Socket socket, byte[] buffer) {
@@ -121,14 +129,23 @@ namespace depth {
 
     public static Socket Connect(string server, int port) {
       Socket tempSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Unspecified);
-      tempSocket.Connect(server, port);
+      try {
+        tempSocket.Connect(server, port);
+      }
+      catch(SocketException e) {
+        Debug.LogWarning("Failed to connect to DepthStream socket: "+server+":"+port);
+      }
 
       return tempSocket.Connected ? tempSocket : null;
     }
 
     public void CloseSocket(Socket sock) {
-      socket.Shutdown(SocketShutdown.Both);
-      socket.Close();
+      try {
+        socket.Shutdown(SocketShutdown.Both);
+        socket.Close();
+      } catch(SocketException e) {
+
+      }
     }
   }
 }

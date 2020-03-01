@@ -13,6 +13,8 @@ namespace depth {
         public int BufferSize = SocketReceiver.DEFAULT_BUFFER_SIZE;
         public bool DecompressPackets = true;
 
+        public KeyCode ConnectKey = KeyCode.None;
+
         [System.Serializable]        
         public class FrameEvent : UnityEvent<Frame> {}
         public FrameEvent OnFrame = new FrameEvent();
@@ -28,8 +30,7 @@ namespace depth {
         // Start is called before the first frame update
         void Start()
         {
-            receiver = new SocketReceiver(SocketReceiver.Connect(SenderHost, SenderPort), onPacket, BufferSize);
-            receiver.Start();
+            Reconnect();
         }
 
         void OnDestroy() {
@@ -49,6 +50,12 @@ namespace depth {
             foreach(var ac in actions) {
                 ac.Invoke();
             }
+        }
+
+        private void OnGUI() {
+			var evt = Event.current;
+            if (!evt.type.Equals(EventType.KeyDown)) return;
+			if (evt.keyCode.Equals(this.ConnectKey)) Reconnect();
         }
 
         void onPacket(int len, byte[] packet) {
@@ -75,6 +82,17 @@ namespace depth {
                 dstream.CopyTo(output);
             }
             return output.ToArray();
+        }
+
+        public void Reconnect() {
+            if (receiver != null) {
+                Debug.Log("Stopping socket receiver...");
+                receiver.Stop(false /* don't wait for thread to finish */, true /* close socket */);
+            }
+
+            Debug.Log("Starting new socket receiver...");
+            receiver = new SocketReceiver(SocketReceiver.Connect(SenderHost, SenderPort), onPacket, BufferSize);
+            receiver.Start();
         }
     }
 }

@@ -22,6 +22,7 @@ int main(int argc, char * argv[])
     if (strcmp(argv[i], "--inflated") == 0
     || strcmp(argv[i], "--inflate") == 0
     || strcmp(argv[i], "--decompress") == 0) {
+      cout << "enabling inflater..." << endl;
       inflaterRef = std::make_shared<depth::Inflater>();
       break;
     }

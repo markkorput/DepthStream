@@ -30,7 +30,16 @@ namespace depth {
                     populatorFunc = populateVector3_16bit;
                     vec3s = new Vector3[f.Size];
                     newSize = true;
-                } else {
+                }
+                else if (f.Size == (640*480*2)) {
+                    Debug.Log("Allocating new vector buffer for 16bit 640x480 stream");
+                    width = 640;
+                    height = 480;
+                    populatorFunc = populateVector3_16bit;
+                    vec3s = new Vector3[f.Size];
+                    newSize = true;
+                }
+                else {
                     Debug.LogWarning("Unsupported frame size: "+f.Size);
                     return;
                 }

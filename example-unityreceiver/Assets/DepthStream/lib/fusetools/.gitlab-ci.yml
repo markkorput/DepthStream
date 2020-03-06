@@ -1,0 +1,8 @@
+pages:
+  script:
+  - mkdir -p public
+  artifacts:
+    paths:
+    - public
+  only:
+  - gitlab-pages

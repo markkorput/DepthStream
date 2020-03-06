@@ -133,7 +133,7 @@ namespace depth {
         tempSocket.Connect(server, port);
       }
       catch(SocketException e) {
-        Debug.LogWarning("Failed to connect to DepthStream socket: "+server+":"+port);
+        Debug.LogWarning("Failed to connect to DepthStream socket: "+server+":"+port+", error: "+e.Message);
       }
 
       return tempSocket.Connected ? tempSocket : null;

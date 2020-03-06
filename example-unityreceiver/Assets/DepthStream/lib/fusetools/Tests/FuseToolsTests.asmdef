@@ -1,0 +1,18 @@
+{
+    "name": "FuseToolsTests",
+    "references": [
+        "FuseTools",
+        "RSG",
+        "FuseToolsTestScripts"
+    ],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": []
+}

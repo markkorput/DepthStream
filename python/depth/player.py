@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import logging, cv2
+import logging, cv2, os
 from time import sleep
 from optparse import OptionParser
 
@@ -18,6 +18,7 @@ if __name__ == '__main__':
   parser.add_option('--fps', dest="fps", default=25.0, type='float')
   parser.add_option('-f', '--file', dest="file", default=None)
   parser.add_option('-s', '--show', dest="show", action='store_true', default=False)
+  parser.add_option('--save-frames-to', dest="save_frames_to", default=None)
   parser.add_option('--processor', dest="processor", default='data/process_player.json')
   parser.add_option('-v', '--verbose', dest="verbose", action='store_true', default=False)
 
@@ -33,8 +34,6 @@ if __name__ == '__main__':
   # this buffer will hold the data buffer and packet size for every incoming frame
   buffer = Buffer()
   player = Player(filepath, start=True)
-
-  
 
   server = SocketConnectionAccepter(opts.port)
 
@@ -72,6 +71,26 @@ if __name__ == '__main__':
       show
     ])
 
+
+  save_frame_index = 0
+  def save_frame(compressed_data, compressed_size):
+    global save_frame_index
+    data, size = unzip(compressed_data, compressed_size)
+    # save_frame(data)
+
+    number = str(save_frame_index)
+    while len(number) < 6:
+      number = '0' + number
+
+    file_path = os.path.join(opts.save_frames_to, f'{number}.png')
+
+    logger.info(f'Writing frame: {file_path}')
+    img, _ = load_grayscale_image(data, size)
+    cv2.imwrite(file_path, img)
+    
+    save_frame_index += 1
+    return compressed_data, compressed_size
+
   # main loop
   try:
     while True:
@@ -90,6 +109,7 @@ if __name__ == '__main__':
 
         # Step(data, size).then(throttle).then(unzip, onAbort=logUnzipFailure).then(logUnzip).then(show_frame)
         Step(data, size).sequence([
+          save_frame if opts.save_frames_to else None,
           throttle,
           service.submit if service else None,
           show_frame if opts.show else None])

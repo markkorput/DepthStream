@@ -1,0 +1,5 @@
+{
+  "processors": [
+    {"type": "threshold", "value":150, "method":2,"enabled":false}
+  ]
+}

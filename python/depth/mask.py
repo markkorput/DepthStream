@@ -3,6 +3,7 @@ import logging, cv2
 from time import sleep
 from optparse import OptionParser
 
+import numpy as np
 from discover.socket import SocketConnectionAccepter, PacketService
 from discover.packet.Player import Player
 from discover.packet.Buffer import Buffer
@@ -18,7 +19,7 @@ if __name__ == '__main__':
   parser.add_option('--fps', dest="fps", default=25.0, type='float')
   parser.add_option('-f', '--file', dest="file", default=None)
   parser.add_option('-s', '--show', dest="show", action='store_true', default=False)
-  parser.add_option('--processor', dest="processor", default='data/process_player.json')
+  parser.add_option('--processor', dest="processor", default=None)
   parser.add_option('-v', '--verbose', dest="verbose", action='store_true', default=False)
 
   parser.add_option('--verbosity', dest="verbosity", action='store_true', default='info')
@@ -34,13 +35,12 @@ if __name__ == '__main__':
   buffer = Buffer()
   player = Player(filepath, start=True)
 
-  
 
-  server = SocketConnectionAccepter(opts.port)
+  # server = SocketConnectionAccepter(opts.port)
 
-  # todo; (re-)initialize service with actual server port
-  service = None if opts.show else PacketService("packetframes", server.port,
-    infoData={'playback': filepath})
+  # # todo; (re-)initialize service with actual server port
+  # service = None if opts.show else PacketService("packetframes", server.port,
+  #   infoData={'playback': filepath})
 
   # packet processing step: throttle
   throttle = create_throttle(opts.fps)
@@ -60,27 +60,83 @@ if __name__ == '__main__':
 
     processor = func
 
+
+  class Masker:
+    def __init__(self):
+      self.mask = None
+
+    def add(self, data, size):
+      if type(self.mask) == type(None):
+        self.mask = np.array(data, copy=True)
+      else:     
+        self.mask = np.maximum(data, self.mask)
+
+      cv2.imshow('mask', self.mask)
+
+    def clear(self):
+      self.mask = None
+
+    
+    def masked(self, img):
+      if type(self.mask) == type(None):
+        return img
+
+      less = np.less(img, self.mask)
+      return img - img * less
+      # return np.ma.masked_array(img, mask=np.less(img, self.mask)) if type(self.mask) != type(None) else img
+      # return img - self.mask if type(self.mask) != type(None) else img
+
+  
+  masker = Masker()
+
+  def masked(img, size):
+    return masker.masked(img), size
+
+  def record(data, size):
+    Step(data, size).sequence([
+      masker.add
+    ])
+
+    return True
+
+
   # packet processing step: showing frame to user
   def show_frame(data, size):
     Step(data, size).sequence([
-      unzip, # else log_unzip_failure
-      # log_unzip,
-      load_grayscale_image,
-      # bit_converter,
-      # processor, # ony loaded if --processor arg specified a valid file
-      processor,
+      masked,
       show
     ])
+
+
+  ### Record controls
+  isRecording = False
+  isClearing = False
+  def onRecordChange(val):
+    global isRecording
+    isRecording = (val == 1)
+    logger.info(f'isRecording: {isRecording}')
+
+  def onClearChange(val):
+    global isClearing
+    isClearing = (val == 1)
+
+  ctrlid = "RecordControls"
+  cv2.namedWindow(ctrlid)
+  cv2.createTrackbar('Record', ctrlid, 0, 1, onRecordChange)
+  cv2.createTrackbar('Clear', ctrlid, 0, 1, onClearChange)
 
   # main loop
   try:
     while True:
-      # update our server add pass any new incoming connections on to our service
-      server.update(onConnection=service.addConsumerSocket if service else None)
+      # # update our server add pass any new incoming connections on to our service
+      # server.update(onConnection=service.addConsumerSocket if service else None)
 
-      # process incoming data
-      if service:
-        service.update() 
+      if isClearing:
+        masker.clear()
+
+      # # process incoming data
+      # if service:
+      #   service.update() 
 
       # check if our player has any new packets
       packet = player.update()
@@ -91,7 +147,10 @@ if __name__ == '__main__':
         # Step(data, size).then(throttle).then(unzip, onAbort=logUnzipFailure).then(logUnzip).then(show_frame)
         Step(data, size).sequence([
           throttle,
-          service.submit if service else None,
+          unzip, # else log_unzip_failure
+          load_grayscale_image,
+          # service.submit if service else None,
+          record if isRecording == 1 else None,
           show_frame if opts.show else None])
 
       if opts.show:

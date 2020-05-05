@@ -7,10 +7,8 @@
 #include "discover/osc/osc.h"
 
 using namespace std;
-using namespace std::placeholders;
 using namespace discover;
 using namespace discover::osc;
-using namespace discover::osc::service;
 
 void PacketService::start() {
   auto server = server::create(mPort);
@@ -51,26 +49,7 @@ void PacketService::update(uint32_t dtMs) {
   }
 }
 
-void PacketService::submit(const void* data, size_t size) {
-  // cout << "PacketService::submit size=" << size << endl;
-  middleware::Packet initialpacket { data, size };
-  middleware::Packet* packet = &initialpacket;
-
-  for(auto& middleware : this->mMiddlewares) {
-    packet = middleware(*packet);
-    if (!packet) return; // middleware aborted
-  }
-
-  // cout << "sending packet (size=" << packet->size << ")" << endl;
-  osc::packet::send(mConsumers, packet->data, packet->size);
-}
-
-
-void PacketService::add_middleware(discover::middleware::PacketMiddlewareFunc func) {
-  if (!func) {
-    cout << "PacketService.add_middleware received nullptr func";
-    return;
-  }
-
-  mMiddlewares.push_back(func);
-}
+// void PacketService::submit(const void* data, size_t size) {
+//   // cout << "sending packet (size=" << packet->size << ")" << endl;
+//   osc::packet::send(mConsumers, packet->data, packet->size);
+// }

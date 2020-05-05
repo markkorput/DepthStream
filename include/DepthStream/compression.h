@@ -4,6 +4,7 @@
 #include <discover/middleware.h>
 
 namespace depth { namespace compression {
+  
   // buffer-space management
   const size_t DEFAULT_GROW_SIZE = 1024;
   void* growBuffer(void* buffer, size_t currentsize, size_t newsize, bool freeOldBuffer=true);
@@ -36,6 +37,7 @@ namespace depth { namespace compression {
     bool bVerbose=false);                               // verbosity flag
 
   namespace middleware {
-    discover::middleware::PacketMiddlewareFunc compress(CompressBuffer& buffer);
+    discover::middleware::packet::ConvertFunc compress(CompressBuffer& buffer);
+    discover::middleware::packet::ConvertFunc compress();
   }
 }}

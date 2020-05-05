@@ -1,0 +1,3 @@
+[submodule "example-unityreceiver/Assets/DepthStream/lib/Computils"]
+	path = example-unityreceiver/Assets/DepthStream/lib/Computils
+	url = git@github.com:markkorput/Computils.git

@@ -20,6 +20,7 @@
 #pragma once
 
 #include <chrono>
+#include <thread>
 #include "Buffer.h"
 
 namespace depth {

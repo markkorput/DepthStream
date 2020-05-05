@@ -34,7 +34,7 @@ int main(int argc, char * argv[]) try
     // auto stream = frame.get_profile().stream_type();
 
     if (format == RS2_FORMAT_Z16) {
-      if (verbose) std::cout << "Submitting " << width <<"x" << height << " RS2_FORMAT_Z16 frame to TransmitterAgent" << std::endl;
+      // if (verbose) std::cout << "Submitting " << width <<"x" << height << " RS2_FORMAT_Z16 frame to TransmitterAgent" << std::endl;
       agent.submit(frame.get_data(), width*height*2);
       continue;
     }
